@@ -1,0 +1,61 @@
+version: 1
+product_id: oh-my-taegun
+implementation_stack:
+  language: TypeScript
+  runtime: Node.js 22
+  package_manager: npm
+test_matrix:
+  - suite: unit
+    command: "npm run test:unit"
+    covers:
+      - capability_detection_classification
+      - planning_completion_gate
+      - blocked_reason_serialization
+      - state_store_read_write
+      - similarity_calculation
+
+  - suite: integration
+    command: "npm run test:integration"
+    covers:
+      - repo_intake_to_capability_discovery
+      - design_freeze_document_generation
+      - validation_gate_order
+      - blocked_report_generation
+      - pr_idempotency_logic
+
+  - suite: recovery
+    command: "npm run test:recovery"
+    covers:
+      - snapshot_resume
+      - corrupted_snapshot_fallback
+      - handoff_rehydration
+
+  - suite: policy
+    command: "npm run test:policy"
+    covers:
+      - no_silent_assumptions
+      - no_skipped_material_questions
+      - high_risk_action_blocking
+      - real_pr_requires_gate_pass
+
+  - suite: e2e
+    command: "npm run test:e2e"
+    covers:
+      - local_clone_to_real_pr_happy_path
+      - git_url_to_blocked_report_path
+      - unsupported_repo_blocked_path
+
+  - suite: docs-traceability
+    command: "npm run test:docs"
+    covers:
+      - every_must_requirement_has_ac
+      - every_ac_has_test_plan
+      - every_task_type_has_contract
+
+fixtures:
+  - id: supported-repo
+    purpose: "happy path capability discovery and validation"
+  - id: unknown-or-incomplete-repo
+    purpose: "blocked fallback validation"
+  - id: no-push-permission-repo
+    purpose: "delivery blocked path"

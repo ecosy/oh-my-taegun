@@ -1,0 +1,126 @@
+version: 1
+product_id: oh-my-taegun
+schemas:
+  run_state:
+    path: ".omt/state/run.json"
+    required:
+      - run_id
+      - profile_id
+      - status
+      - started_at
+      - repository
+      - current_task
+      - delivery
+      - validation
+    fields:
+      run_id: string
+      profile_id: string
+      status: "planning|running|blocked|completed|failed"
+      started_at: iso8601
+      updated_at: iso8601
+      repository:
+        canonical_repo_id: string
+        local_workspace: string
+        default_branch: string
+      current_task: string
+      completed_tasks: string[]
+      blocked_reasons: object[]
+      delivery:
+        mode: "dry-run|draft-pr|real-pr"
+        status: "pending|blocked|completed"
+        target_branch: string
+        feature_branch: string
+        pr_url: string?
+      validation:
+        traceability: boolean
+        feature_validation: boolean
+        regression_validation: boolean
+
+  historical_run_state:
+    path: ".omt/state/runs/<run-id>.json"
+    required:
+      - run_id
+      - profile_id
+      - status
+    fields:
+      run_id: string
+      profile_id: string
+      status: "planning|running|blocked|completed|failed"
+
+  task_state:
+    path: ".omt/state/tasks/<task-id>.json"
+    required:
+      - task_id
+      - run_id
+      - status
+      - attempts
+    fields:
+      task_id: string
+      run_id: string
+      status: "pending|running|passed|failed|blocked"
+      attempts: number
+      started_at: iso8601?
+      completed_at: iso8601?
+      artifacts: string[]
+      evidence_refs: string[]
+      next_actions: string[]
+      blocked_reason: object?
+
+  snapshot:
+    path: ".omt/sessions/<run-id>/snapshot-<n>.json"
+    required:
+      - run_id
+      - iteration
+      - branch
+      - workspace
+      - ac_status
+      - failing_tests
+      - blockers
+      - next_actions
+    fields:
+      run_id: string
+      iteration: number
+      created_at: iso8601
+      branch: string
+      workspace: string
+      ac_status: object
+      failing_tests: string[]
+      changed_files: string[]
+      blockers: string[]
+      next_actions: string[]
+      validation_summary: object
+
+  handoff:
+    path: ".omt/handoffs/<run-id>/handoff-<n>.md"
+    required_sections:
+      - objective
+      - current_state
+      - changed_files
+      - passing_tests
+      - failing_tests
+      - blockers
+      - next_actions
+      - evidence_refs
+
+  evidence_registry:
+    path: ".omt/evidence.json"
+    required:
+      - entries
+    fields:
+      entries:
+        type: array
+        items:
+          id: string
+          source_type: "user|repo|command|external|runtime"
+          ref: string
+          summary: string
+          recorded_at: iso8601
+
+  blocked_report:
+    path: ".omt/reports/blocked-<run-id>.md"
+    required_sections:
+      - reason
+      - evidence
+      - local_state_summary
+      - next_action
+      - credential_or_policy_gap

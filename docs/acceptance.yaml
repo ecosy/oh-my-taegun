@@ -1,0 +1,105 @@
+version: 1
+product_id: oh-my-taegun
+source_refs:
+  - docs/scope-freeze.md
+  - docs/requirements.yaml
+acceptance_criteria:
+  - id: AC-001
+    requirement_ids: [REQ-001, REQ-003]
+    title: Solo intake flow
+    description: "사용자는 단일 운영자 기준으로 git URL 또는 로컬 clone 경로 중 하나를 제공해 실행을 시작할 수 있어야 한다."
+    verification:
+      type: scenario
+      method: manual
+      scenario: "새 실행에서 git URL 입력 케이스와 local clone path 입력 케이스를 각각 수행한다."
+      expected: "둘 중 하나만으로 대상 저장소가 canonical workspace로 확정되고 실행이 진행된다."
+
+  - id: AC-002
+    requirement_ids: [REQ-004]
+    title: Capability detection with blocked fallback
+    description: "시스템은 저장소의 언어, 런타임, 패키지 매니저, 테스트/배포 표면, credentials 요구를 분류하고 미지원 항목은 blocked로 남겨야 한다."
+    verification:
+      type: scenario
+      method: mixed
+      scenario: "지원 가능한 repo와 일부 정보가 비어 있는 repo를 각각 입력한다."
+      expected: "지원 가능한 항목은 실행 계획에 반영되고, 정보 부족 또는 미지원 항목은 억지 추론 없이 blocked와 근거로 기록된다."
+
+  - id: AC-003
+    requirement_ids: [REQ-005, REQ-006]
+    title: No skipped planning questions
+    description: "낮 설계 단계에서 중요한 미확정 사항이 남아 있으면 시스템은 질문을 생략하지 않아야 하며, 설계 완료 전 open questions를 0으로 만들어야 한다."
+    verification:
+      type: scenario
+      method: manual
+      scenario: "배포 대상, secrets, 브랜치 전략이 빠진 상태로 설계 인터뷰를 진행한다."
+      expected: "시스템은 해당 항목을 질문하거나 blocked로 남기고, 조용히 가정해서 완료 처리하지 않는다."
+
+  - id: AC-004
+    requirement_ids: [REQ-006]
+    title: Executable design completion gate
+    description: "설계 완료 시점에는 MUST requirement, acceptance criteria, verification method, 저장소/브랜치 전략, 승인 기록이 모두 연결되어야 한다."
+    verification:
+      type: document
+      method: manual
+      scenario: "설계 종료 직전 requirements, acceptance, spec 산출물을 검토한다."
+      expected: "누락된 MUST requirement 또는 verification 없는 AC가 존재하지 않는다."
+
+  - id: AC-005
+    requirement_ids: [REQ-007]
+    title: Broad night execution coverage
+    description: "정책과 전제 조건이 충족되면 시스템은 코드 수정, 의존성 설치, 테스트, 배포, 외부 시스템 연동 태스크를 실행할 수 있어야 한다."
+    verification:
+      type: scenario
+      method: mixed
+      scenario: "설치, 테스트, 배포, 외부 연동이 포함된 작업 계획을 실행한다."
+      expected: "각 작업이 capability detection 결과와 정책에 맞춰 스케줄되고 실행 또는 blocked 처리된다."
+
+  - id: AC-006
+    requirement_ids: [REQ-008, REQ-012]
+    title: High-risk action policy enforcement
+    description: "secret 사용, production deploy, database migration, 외부 write, 인프라 변경은 정책 또는 명시적 승인 없이는 수행되지 않아야 한다."
+    verification:
+      type: scenario
+      method: manual
+      scenario: "production deploy 또는 secret 사용이 필요한 작업을 승인 없이 요청한다."
+      expected: "실행은 차단되고 blocked report와 필요한 승인/정책 정보가 남는다."
+
+  - id: AC-007
+    requirement_ids: [REQ-009, REQ-012]
+    title: Snapshot and resume
+    description: "장시간 실행 중 중단이 발생해도 최신 정상 snapshot과 handoff를 통해 재시작할 수 있어야 한다."
+    verification:
+      type: scenario
+      method: mixed
+      scenario: "반복 중 프로세스를 중단한 뒤 resume를 실행한다."
+      expected: "최신 정상 snapshot에서 재개하고, 이미 끝난 반복을 불필요하게 다시 수행하지 않는다."
+
+  - id: AC-008
+    requirement_ids: [REQ-010, REQ-011]
+    title: Validation before real PR
+    description: "real PR 생성 전에는 기능 검증 테스트와 regression test가 모두 통과해야 한다."
+    verification:
+      type: scenario
+      method: automated-or-manual
+      scenario: "타겟 repo의 기능 테스트와 regression suite를 실행한다."
+      expected: "필수 검증이 하나라도 실패하면 PR 생성 단계로 넘어가지 않는다."
+
+  - id: AC-009
+    requirement_ids: [REQ-010]
+    title: Feature branch to develop PR
+    description: "성공적인 실행은 feature 브랜치에 변경을 쌓고 develop 브랜치를 대상으로 PR을 생성해야 한다."
+    verification:
+      type: scenario
+      method: manual
+      scenario: "원격 저장소 접근이 가능한 환경에서 성공 경로를 수행한다."
+      expected: "생성된 PR의 source branch는 feature 계열이고 target branch는 develop이다."
+
+  - id: AC-010
+    requirement_ids: [REQ-012]
+    title: Safe blocked report on remote failure
+    description: "원격 반영 실패나 권한 문제 발생 시 시스템은 작업 결과를 보존하고 blocked report와 재시작 가능한 상태를 남겨야 한다."
+    verification:
+      type: scenario
+      method: manual
+      scenario: "push 권한이 없는 환경 또는 PR 생성 실패 상황을 만든다."
+      expected: "로컬 결과물과 상태 정보는 유지되고, 실패 원인 및 다음 조치가 담긴 blocked report가 생성된다."

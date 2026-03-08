@@ -1,0 +1,177 @@
+version: 1
+product_id: oh-my-taegun
+source_refs:
+  - docs/requirements.yaml
+  - docs/acceptance.yaml
+  - docs/spec.yaml
+test_plan:
+  - id: TP-001
+    acceptance_ids: [AC-001]
+    category: intake
+    method: manual
+    stage: design
+    description: "git URL 입력으로 solo intake flow가 시작되는지 검증한다."
+    steps:
+      - "새 실행을 시작한다."
+      - "대상 저장소 git URL만 입력한다."
+      - "canonical workspace와 기본 브랜치가 식별되는지 확인한다."
+    expected_result:
+      - "실행이 시작되고 입력 저장소가 canonical workspace로 확정된다."
+      - "추가 입력 없이 intake 상태가 완료된다."
+
+  - id: TP-002
+    acceptance_ids: [AC-001]
+    category: intake
+    method: manual
+    stage: design
+    description: "로컬 clone path 입력으로 solo intake flow가 시작되는지 검증한다."
+    steps:
+      - "새 실행을 시작한다."
+      - "로컬 clone 경로만 입력한다."
+      - "작업 디렉토리와 기본 브랜치가 식별되는지 확인한다."
+    expected_result:
+      - "실행이 시작되고 로컬 저장소가 canonical workspace로 확정된다."
+
+  - id: TP-003
+    acceptance_ids: [AC-002]
+    category: discovery
+    method: mixed
+    stage: design
+    description: "지원 가능한 저장소에서 capability detection이 언어, 빌드, 테스트, 배포, 권한 표면을 분류하는지 검증한다."
+    inputs:
+      repo_fixture: supported-repo
+    expected_result:
+      - "runtime, package manager, build/test commands가 식별된다."
+      - "deployment target과 secret requirement가 분류된다."
+      - "지원 가능 항목이 supported 또는 partial로 기록된다."
+
+  - id: TP-004
+    acceptance_ids: [AC-002]
+    category: discovery
+    method: manual
+    stage: design
+    description: "정보가 부족한 저장소에서 blocked fallback이 동작하는지 검증한다."
+    inputs:
+      repo_fixture: unknown-or-incomplete-repo
+    expected_result:
+      - "미확인 stack 또는 권한 항목이 억지 추론 없이 blocked로 기록된다."
+      - "blocked 근거와 필요한 후속 조치가 남는다."
+
+  - id: TP-005
+    acceptance_ids: [AC-003, AC-004]
+    category: planning
+    method: manual
+    stage: design
+    description: "중요한 미확정 사항이 남아 있을 때 질문을 생략하지 않는지 검증한다."
+    setup:
+      missing_items:
+        - deploy_target
+        - secrets_requirement
+        - branch_strategy
+    expected_result:
+      - "시스템은 누락 항목을 질문하거나 blocked로 남긴다."
+      - "open_questions가 남아 있는 상태에서는 설계 완료 처리하지 않는다."
+
+  - id: TP-006
+    acceptance_ids: [AC-004]
+    category: planning
+    method: manual
+    stage: design
+    description: "설계 완료 시 MUST requirement, AC, verification 연결이 모두 존재하는지 점검한다."
+    expected_result:
+      - "verification 없는 AC가 없다."
+      - "AC에 연결되지 않은 MUST requirement가 없다."
+      - "승인 정보와 브랜치 전략이 문서에 남아 있다."
+
+  - id: TP-007
+    acceptance_ids: [AC-005]
+    category: orchestration
+    method: mixed
+    stage: nightly
+    description: "허용된 범위에서 코드 수정, 설치, 테스트, 배포, 외부 연동 태스크가 계획 또는 실행되는지 검증한다."
+    expected_result:
+      - "각 태스크가 capability detection 결과를 바탕으로 supported, partial, blocked 중 하나로 분류된다."
+      - "허용된 태스크만 실행 큐에 들어간다."
+
+  - id: TP-008
+    acceptance_ids: [AC-006]
+    category: policy
+    method: manual
+    stage: nightly
+    description: "고위험 작업이 승인 없이 차단되는지 검증한다."
+    setup:
+      requested_actions:
+        - production_deploy
+        - secrets_use
+    expected_result:
+      - "실행이 차단된다."
+      - "blocked report에 필요한 승인 또는 정책 공백이 기록된다."
+
+  - id: TP-009
+    acceptance_ids: [AC-007]
+    category: recovery
+    method: mixed
+    stage: nightly
+    description: "snapshot과 handoff 기반 resume가 최신 정상 상태에서 재개되는지 검증한다."
+    setup:
+      interruption_point: mid-iteration
+    expected_result:
+      - "resume 시 최신 정상 snapshot이 로드된다."
+      - "이미 완료된 반복을 불필요하게 재실행하지 않는다."
+
+  - id: TP-010
+    acceptance_ids: [AC-007]
+    category: recovery
+    method: manual
+    stage: nightly
+    description: "snapshot 손상 시 직전 정상 snapshot으로 후퇴하는지 검증한다."
+    setup:
+      corrupt_latest_snapshot: true
+    expected_result:
+      - "직전 정상 snapshot으로 복구한다."
+      - "복구 불가 시 안전 중단과 blocked 상태를 남긴다."
+
+  - id: TP-011
+    acceptance_ids: [AC-008]
+    category: validation
+    method: mixed
+    stage: nightly
+    description: "feature validation과 regression validation이 모두 통과해야 PR 단계로 넘어가는지 검증한다."
+    expected_result:
+      - "둘 중 하나라도 실패하면 delivery 단계로 이동하지 않는다."
+      - "실패 시 수정 루프 또는 blocked 종료를 수행한다."
+
+  - id: TP-012
+    acceptance_ids: [AC-009]
+    category: delivery
+    method: manual
+    stage: morning
+    description: "성공 경로에서 feature 브랜치에서 develop 대상 real PR이 생성되는지 검증한다."
+    expected_result:
+      - "source branch가 `feature/omt-{run_id}` 패턴을 따른다."
+      - "target branch가 `develop`이다."
+      - "기존 PR이 있으면 새로 만들지 않고 업데이트한다."
+
+  - id: TP-013
+    acceptance_ids: [AC-010]
+    category: delivery
+    method: manual
+    stage: morning
+    description: "원격 반영 실패 시 blocked report와 로컬 상태 보존이 수행되는지 검증한다."
+    setup:
+      remote_failure:
+        - no_push_permission
+        - pr_creation_error
+    expected_result:
+      - "로컬 변경과 상태 파일은 보존된다."
+      - "실패 원인, evidence, next action이 담긴 blocked report가 생성된다."
+
+  - id: TP-014
+    acceptance_ids: [AC-003, AC-004, AC-008]
+    category: traceability
+    method: manual
+    stage: cross-cutting
+    description: "REQ -> AC -> Test Plan 연결이 끝까지 유지되는지 점검한다."
+    expected_result:
+      - "모든 MUST requirement가 하나 이상의 AC와 TP에 연결된다."
+      - "누락 연결이 있으면 실행 단계 시작 전 실패한다."

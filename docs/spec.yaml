@@ -1,0 +1,184 @@
+version: 1
+profile_id: omt-v1-solo-real-pr
+product_id: oh-my-taegun
+source_documents:
+  scope_freeze: docs/scope-freeze.md
+  requirements: docs/requirements.yaml
+  acceptance: docs/acceptance.yaml
+  test_plan: docs/test-plan.yaml
+  design_summary: docs/design_summary.md
+  implementation_spec: docs/implementation-spec.md
+  state_schema: docs/state-schema.yaml
+  task_contracts: docs/task-contracts.yaml
+  test_matrix: docs/test-matrix.yaml
+inputs:
+  repository:
+    source: prompt
+    require_one_of:
+      - git_url
+      - local_clone_path
+    capture:
+      - canonical_repo_id
+      - default_branch
+      - local_workspace
+  operator:
+    mode: solo
+  model:
+    preferred_tiers:
+      - gpt-5.2-codex-medium
+      - gpt-5.2-codex-xhigh
+    host_environment: company-computer
+
+planning:
+  question_policy:
+    no_silent_assumptions: true
+    no_skipped_material_questions: true
+    ask_until:
+      - no_open_questions
+      - no_material_ambiguity_for_execution
+      - repo_input_confirmed
+      - branch_strategy_confirmed
+      - required_permissions_classified
+  completion_gates:
+    - user_approval_recorded
+    - must_requirements_mapped_to_acceptance
+    - every_acceptance_has_verification
+    - risky_actions_classified
+    - delivery_path_classified
+  artifacts:
+    - docs/design_summary.md
+    - docs/requirements.yaml
+    - docs/acceptance.yaml
+    - docs/test-plan.yaml
+    - docs/spec.yaml
+
+capability_detection:
+  accepted_repo_scope: any
+  inspect:
+    - vcs_remote
+    - language_runtime
+    - package_manager
+    - build_commands
+    - test_commands
+    - lint_commands
+    - typecheck_commands
+    - deployment_targets
+    - secret_requirements
+    - database_migration_surface
+    - external_write_surfaces
+  classify_as:
+    supported: "전제 조건과 정책이 충족된 항목"
+    partial: "일부 전제 조건 또는 추가 질문이 필요한 항목"
+    blocked: "미지원 또는 정보/권한 부족으로 실행할 수 없는 항목"
+  on_unknown_or_unverified: blocked
+
+execution:
+  mode: sequential
+  workspace:
+    readonly_mode: shared-readonly
+    write_mode: isolated-worktree
+  allowed_actions:
+    - code_modify
+    - dependency_install
+    - test_execute
+    - deploy
+    - external_integrate
+  high_risk_actions:
+    require_policy_or_explicit_approval:
+      - secrets_use
+      - production_deploy
+      - database_migration
+      - external_write
+      - infra_change
+    on_missing_policy: blocked
+  session:
+    snapshot_each_iteration: true
+    handoff_on_rotation: true
+    resume_from_latest_healthy_snapshot: true
+  blocked_when:
+    - missing_credentials
+    - unsupported_stack_without_safe_fallback
+    - destructive_action_without_policy
+    - deploy_target_unknown
+    - base_branch_policy_unknown
+  stop_when:
+    - all_must_acceptance_passed
+    - feature_validation_passed
+    - regression_validation_passed
+    - delivery_finished_or_blocked
+
+validation:
+  required:
+    - feature_validation
+    - regression_validation
+  gate_order:
+    - traceability
+    - implementation
+    - feature_validation
+    - regression_validation
+    - delivery
+  fail_behavior: reenter_loop_or_blocked
+
+delivery:
+  target_outcome: real-pr
+  fallback_on_remote_failure: blocked-report
+  branch_strategy:
+    feature_branch_template: "feature/omt-{run_id}"
+    target_branch: develop
+    update_existing_branch_if_present: true
+  pr_strategy:
+    mode: real
+    update_existing_pr_if_present: true
+  prerequisites:
+    - feature_branch_pushed
+    - feature_validation_passed
+    - regression_validation_passed
+  idempotency_key: run_id
+
+blocked_report:
+  required_sections:
+    - reason
+    - evidence
+    - local_state_summary
+    - next_action
+    - credential_or_policy_gap
+
+tasks:
+  - id: intake
+    type: repo_intake
+    workspace_mode: shared-readonly
+
+  - id: discover_capabilities
+    type: capability_discovery
+    depends_on: [intake]
+    workspace_mode: shared-readonly
+
+  - id: design_interview
+    type: interactive_design
+    depends_on: [discover_capabilities]
+    workspace_mode: shared-readonly
+
+  - id: freeze_requirements
+    type: freeze_scope_and_requirements
+    depends_on: [design_interview]
+    workspace_mode: shared-readonly
+
+  - id: implement
+    type: implement_changes
+    depends_on: [freeze_requirements]
+    workspace_mode: isolated-write
+
+  - id: validate
+    type: run_validation_gates
+    depends_on: [implement]
+    workspace_mode: isolated-write
+
+  - id: deliver
+    type: create_or_update_real_pr
+    depends_on: [validate]
+    workspace_mode: isolated-write
+
+  - id: morning_report
+    type: summarize_outcome
+    depends_on: [deliver]
+    workspace_mode: shared-readonly

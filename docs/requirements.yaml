@@ -1,0 +1,84 @@
+version: 1
+product:
+  id: oh-my-taegun
+  name: oh-my-taegun
+  phase: v1-scope-freeze
+sources:
+  - id: user-interview-2026-03-08
+    type: user
+    ref: "2026-03-08 scope freeze answers"
+  - id: scope-freeze-v1
+    type: doc
+    ref: "docs/scope-freeze.md"
+requirements:
+  - id: REQ-001
+    priority: MUST
+    title: Solo primary operator
+    description: "시스템은 1차 사용자 1명이 자기 저장소 작업을 위임하는 흐름에 최적화되어야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-002
+    priority: SHOULD
+    title: Clone or skill distribution
+    description: "다른 사용자는 직접 멀티테넌트 사용자로 다루지 않고, git clone 또는 skill 형태로 제품을 가져가 재사용할 수 있어야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-003
+    priority: MUST
+    title: Repository intake
+    description: "대상 저장소 입력으로 git URL 또는 로컬 clone 디렉토리 경로를 받아야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-004
+    priority: MUST
+    title: Capability detection and blocked fallback
+    description: "특정 repo나 stack을 사전에 제한하지 않되, 실행 전 capability detection을 수행하고 지원 불가 또는 정보 부족 항목은 blocked 상태로 남겨야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-005
+    priority: MUST
+    title: No skipped planning questions
+    description: "낮 설계 단계에서는 넘겨짚기 없이 필요한 질문을 모두 수행하고, 중요한 미확정 사항을 질문 또는 blocked로 처리해야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-006
+    priority: MUST
+    title: Design completion gate
+    description: "설계 완료는 open questions 해소, MUST requirement-AC-verification 연결, 저장소/브랜치 전략 확인, 권한 및 외부 의존성 분류, 사용자 승인 기록을 포함해야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-007
+    priority: MUST
+    title: Broad night execution scope
+    description: "야간 실행은 코드 수정, 의존성 설치, 테스트, 배포, 외부 시스템 연동을 포함할 수 있어야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-008
+    priority: MUST
+    title: Explicit policy for high-risk actions
+    description: "secret 사용, production deploy, database migration, 외부 write, 인프라 변경 같은 고위험 작업은 정책 또는 명시적 승인 없이는 수행하지 않아야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-009
+    priority: MUST
+    title: Unattended recovery
+    description: "장시간 무인 실행 중에도 snapshot, handoff, resume 지점을 통해 작업을 이어갈 수 있어야 한다."
+    source_refs: [scope-freeze-v1]
+
+  - id: REQ-010
+    priority: MUST
+    title: Morning deliverable as real PR
+    description: "아침 산출물은 feature 브랜치에서 구현과 검증을 마친 뒤 develop 브랜치를 대상으로 생성한 real PR이어야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-011
+    priority: MUST
+    title: Feature and regression validation before PR
+    description: "PR 생성 전에는 해당 기능 검증 테스트와 regression test를 모두 완료해야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]
+
+  - id: REQ-012
+    priority: MUST
+    title: Safe failure handoff
+    description: "원격 반영 실패, 권한 부족, 정책 불일치가 발생하면 코드를 폐기하지 않고 blocked report와 재시작 가능한 상태를 남겨야 한다."
+    source_refs: [user-interview-2026-03-08, scope-freeze-v1]

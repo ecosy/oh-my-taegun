@@ -1,0 +1,38 @@
+{
+  "name": "oh-my-taegun",
+  "version": "0.1.0",
+  "description": "Local-first autonomous development harness",
+  "type": "module",
+  "bin": {
+    "omt": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "cli": "tsx src/cli/index.ts",
+    "check:traceability": "tsx scripts/check-traceability.ts",
+    "design": "npm run cli -- design",
+    "run": "npm run cli -- run",
+    "resume": "npm run cli -- resume",
+    "report": "npm run cli -- report",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e",
+    "test:recovery": "vitest run tests/recovery",
+    "test:policy": "vitest run tests/policy",
+    "test:docs": "vitest run tests/docs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

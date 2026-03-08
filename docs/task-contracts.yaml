@@ -1,0 +1,117 @@
+version: 1
+product_id: oh-my-taegun
+task_contracts:
+  - type: repo_intake
+    inputs:
+      - git_url?
+      - local_clone_path?
+      - profile
+    preconditions:
+      - one_repository_input_present
+    outputs:
+      - canonical_repo_id
+      - local_workspace
+      - default_branch
+    blocked_when:
+      - invalid_git_url
+      - missing_local_path
+      - workspace_not_readable
+
+  - type: capability_discovery
+    inputs:
+      - local_workspace
+      - profile
+    outputs:
+      - language_runtime
+      - package_manager
+      - build_commands
+      - test_commands
+      - deployment_targets
+      - secret_requirements
+      - classification
+    blocked_when:
+      - workspace_unreadable
+      - cannot_detect_runtime
+
+  - type: interactive_design
+    inputs:
+      - capabilities
+      - scope_freeze
+      - existing_requirements?
+    outputs:
+      - requirements_delta
+      - acceptance_delta
+      - open_questions
+      - approval_state
+    blocked_when:
+      - unresolved_must_question
+      - missing_permission_classification
+
+  - type: freeze_scope_and_requirements
+    inputs:
+      - requirements
+      - acceptance
+      - test_plan
+      - approval_state
+    preconditions:
+      - open_questions_empty
+      - every_must_requirement_mapped
+      - every_acceptance_has_test_plan
+    outputs:
+      - frozen_requirements
+      - frozen_acceptance
+      - design_summary
+
+  - type: implement_changes
+    inputs:
+      - frozen_requirements
+      - frozen_acceptance
+      - current_snapshot?
+      - workspace
+    outputs:
+      - code_changes
+      - changed_files
+      - evidence_refs
+    blocked_when:
+      - unsupported_stack_without_fallback
+      - missing_policy_for_high_risk_action
+
+  - type: run_validation_gates
+    inputs:
+      - changed_files
+      - test_plan
+      - capabilities
+    outputs:
+      - feature_validation
+      - regression_validation
+      - gate_summary
+    blocked_when:
+      - required_test_command_unknown
+      - missing_test_environment
+
+  - type: create_or_update_real_pr
+    inputs:
+      - gate_summary
+      - delivery_policy
+      - git_credentials
+      - pr_credentials
+    preconditions:
+      - feature_validation_passed
+      - regression_validation_passed
+    outputs:
+      - feature_branch
+      - pr_url
+      - delivery_status
+    blocked_when:
+      - missing_remote_permissions
+      - protected_branch_direct_push_attempt
+      - pr_provider_unavailable
+
+  - type: summarize_outcome
+    inputs:
+      - run_state
+      - task_states
+      - delivery_status
+    outputs:
+      - morning_summary
+      - blocked_report?

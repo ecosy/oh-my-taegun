@@ -1,0 +1,38 @@
+# Runtime state
+.omt/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets/
+
+# Logs and reports
+*.log
+logs/
+tmp/
+temp/
+
+# Node / TypeScript
+node_modules/
+dist/
+build/
+coverage/
+.pnpm-store/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Local overrides
+local/
+private/
+*.local
