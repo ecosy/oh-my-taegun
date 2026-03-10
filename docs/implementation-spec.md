@@ -54,6 +54,14 @@ src/
     run-engine.ts
     task-dispatcher.ts
     loop-controller.ts
+    retry-policy.ts
+  llm/
+    types.ts
+    prompt-builder.ts
+    result-schema.ts
+    codex-cli-adapter.ts
+  planning/
+    requirement-step-planner.ts
   tasks/
     repo-intake.ts
     capability-discovery.ts
@@ -143,6 +151,17 @@ src/
   - `message`
   - `requiredAction`
   - `evidence`
+- `WorkUnit`
+  - `requirementIds`
+  - `acceptanceIds`
+  - `testPlanIds`
+  - `validationCommands`
+  - `maxAttempts`
+- `WorkUnitResult`
+  - `status`: `changed | no_change | blocked | failed`
+  - `changedFiles`
+  - `suggestedValidationCommands`
+  - `sessionId`
 
 ## 실행 순서
 
@@ -152,6 +171,8 @@ src/
 4. design completion gate 확인
 5. baseline snapshot 생성
 6. task graph 순차 실행
+   - `implement-changes`는 requirement-step planner와 Codex CLI executor를 사용한다.
+   - 각 work unit 실행 뒤 targeted validation을 수행한다.
 7. validation gates 실행
 8. delivery 또는 blocked report
 9. morning summary 출력
@@ -163,6 +184,8 @@ src/
 - credential failure: delivery blocked
 - snapshot corruption: 직전 정상 snapshot으로 후퇴
 - regression failure: loop 재진입 또는 blocked 종료
+- llm result parse failure: 즉시 blocked
+- repeated no progress: retry budget 소진 후 blocked
 
 ## 테스트 실행 계약
 

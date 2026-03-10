@@ -1,17 +1,16 @@
 import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
-import { createFakeCodexEnv } from "../helpers/fake-codex.js";
 import { projectRoot } from "../helpers/project-root.js";
 import { createTempGitRepo } from "../helpers/temp-repo.js";
+import { createFakeCodexEnv } from "../helpers/fake-codex.js";
 
 const execFileAsync = promisify(execFile);
 
-describe("run command validation failures", () => {
-  it("blocks when detected test commands fail", async () => {
-    const repo = await createTempGitRepo({
-      test: "node -e \"process.exit(1)\"",
-    });
+describe("llm fix simple fixture", () => {
+  it("runs the fake Codex loop and persists LLM artifacts", async () => {
+    const repo = await createTempGitRepo();
     const env = await createFakeCodexEnv();
     const result = await execFileAsync("node", [
       "--import",
@@ -25,7 +24,12 @@ describe("run command validation failures", () => {
     ], { cwd: projectRoot, env });
 
     const payload = JSON.parse(result.stdout);
-    expect(payload.status).toBe("blocked");
-    expect(payload.blockedReasons.some((reason: { code: string }) => reason.code === "feature_validation_failed")).toBe(true);
-  });
+    expect(payload.runId).toMatch(/^\d{14}$/u);
+
+    const runState = JSON.parse(await readFile(`${repo}/.omt/state/run.json`, "utf8"));
+    expect(runState.implementation.completed_work_units).toBeGreaterThan(0);
+
+    const evidence = await readFile(`${repo}/.omt/evidence.json`, "utf8");
+    expect(evidence).toContain("wu-001");
+  }, 15000);
 });

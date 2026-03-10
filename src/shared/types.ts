@@ -35,6 +35,21 @@ export interface TaskContract {
   blocked_when?: string[];
 }
 
+export interface LlmExecutionProfile {
+  backend?: "codex-cli" | string;
+  model?: string;
+  work_unit_strategy?: "requirement-step" | string;
+  edit_mode?: "direct-edit" | string;
+  execution_scope?: "code-and-test" | string;
+  per_unit_max_attempts?: number;
+  include_should_requirements?: boolean;
+  codex?: {
+    sandbox?: "read-only" | "workspace-write" | "danger-full-access" | string;
+    approval?: "untrusted" | "on-failure" | "on-request" | "never" | string;
+    json_output?: boolean;
+  };
+}
+
 export interface SpecProfile {
   version: number;
   profile_id: string;
@@ -62,6 +77,7 @@ export interface SpecProfile {
     };
     idempotency_key?: string;
   };
+  llm_execution?: LlmExecutionProfile;
   tasks: Array<{ id: string; type: string; depends_on?: string[]; workspace_mode?: string }>;
 }
 
@@ -159,6 +175,13 @@ export interface RunState {
     feature_validation: boolean;
     regression_validation: boolean;
   };
+  implementation?: {
+    total_work_units: number;
+    completed_work_units: number;
+    current_work_unit_id?: string;
+    completed_requirement_ids: string[];
+    blocked_requirement_ids: string[];
+  };
 }
 
 export interface TaskState {
@@ -172,6 +195,13 @@ export interface TaskState {
   evidence_refs: string[];
   next_actions: string[];
   blocked_reason?: BlockedReason;
+  llm?: {
+    backend: "codex-cli";
+    work_unit_id?: string;
+    session_id?: string;
+    model?: string;
+    attempt?: number;
+  };
 }
 
 export interface SnapshotState {

@@ -30,10 +30,17 @@ ${reasons.flatMap((reason) => reason.evidence ?? []).map((evidence) => `- ${evid
 - status: ${runState.status}
 - current_task: ${runState.current_task}
 - feature_branch: ${runState.delivery.feature_branch}
+- target_branch: ${runState.delivery.target_branch}
+- remote_pushed: ${runState.delivery.remote_pushed ?? false}
+- pr_url: ${runState.delivery.pr_url ?? "none"}
 
 ## next_action
 
 ${reasons.map((reason) => `- ${reason.requiredAction ?? "Investigate and retry."}`).join("\n")}
+
+## retry_command
+
+- npm run run -- --repo-path ${workspace}
 
 ## credential_or_policy_gap
 

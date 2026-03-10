@@ -4,6 +4,7 @@ export interface DeliveryGateInput {
   deliveryMode: DeliveryMode;
   originUrl?: string;
   targetBranch: string;
+  featureBranch: string;
   featureValidationPassed: boolean;
   regressionValidationPassed: boolean;
   capabilities: CapabilityReport;
@@ -30,6 +31,9 @@ export function evaluateDeliveryGate(input: DeliveryGateInput): { passed: boolea
   }
   if (!input.targetBranch) {
     issues.push("Target branch is missing.");
+  }
+  if (!input.featureBranch.startsWith("feature/omt-")) {
+    issues.push("Feature branch does not follow the feature/omt-* policy.");
   }
   if (isGitHubOrigin(input.originUrl) && !hasGitHubToken()) {
     issues.push("GitHub token is not configured for PR delivery.");
