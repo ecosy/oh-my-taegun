@@ -1,4 +1,4 @@
-import { branchHasDiffFromBase, commitWorkingTree, hasOrigin, pushBranch } from "../delivery/git-client.js";
+import { branchExists, branchHasDiffFromBase, commitWorkingTree, hasOrigin, pushBranch } from "../delivery/git-client.js";
 import { blockedPrReason, createOrUpdatePullRequest } from "../delivery/pr-client.js";
 import type { BlockedReason, PullRequestResult, RunState } from "../shared/types.js";
 
@@ -26,6 +26,26 @@ export async function attemptDelivery(input: DeliveryAttemptInput): Promise<Deli
       message: "Repository origin URL is not configured.",
       requiredAction: "Add an origin remote before requesting real PR delivery.",
       evidence: ["git remote get-url origin"],
+    });
+    return { blockedReasons, remotePushed };
+  }
+
+  if (!input.featureBranch.startsWith("feature/omt-")) {
+    blockedReasons.push({
+      code: "delivery_branch_policy_failed",
+      message: "Feature branch must follow the feature/omt-* naming policy.",
+      requiredAction: "Create or resume a feature/omt-* branch before requesting delivery.",
+      evidence: [input.featureBranch],
+    });
+    return { blockedReasons, remotePushed };
+  }
+
+  if (!(await branchExists(input.workspace, input.targetBranch, input.originUrl))) {
+    blockedReasons.push({
+      code: "delivery_target_branch_missing",
+      message: `Target branch '${input.targetBranch}' does not exist locally or on origin.`,
+      requiredAction: "Create the target branch or update the delivery branch strategy before retrying.",
+      evidence: [input.targetBranch],
     });
     return { blockedReasons, remotePushed };
   }

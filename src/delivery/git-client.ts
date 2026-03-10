@@ -37,6 +37,24 @@ export async function hasOrigin(workspace: string): Promise<boolean> {
   }
 }
 
+export async function branchExists(workspace: string, branchName: string, originUrl?: string): Promise<boolean> {
+  if (await refExists(workspace, branchName)) {
+    return true;
+  }
+  if (await refExists(workspace, `origin/${branchName}`)) {
+    return true;
+  }
+  try {
+    const result = await runCommand(
+      "git",
+      [...gitNetworkArgs(originUrl), "-C", workspace, "ls-remote", "--heads", "origin", branchName],
+    );
+    return result.stdout.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function branchHasDiffFromBase(
   workspace: string,
   baseBranch: string,

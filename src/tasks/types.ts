@@ -1,4 +1,13 @@
-import type { BlockedReason, CapabilityReport, DocumentSet, RepositoryContext, RunState, SnapshotState, TaskResult } from "../shared/types.js";
+import type {
+  BlockedReason,
+  CapabilityReport,
+  DocumentSet,
+  RepositoryContext,
+  RunState,
+  SnapshotState,
+  TaskResult,
+  ValidationExecutionResult,
+} from "../shared/types.js";
 
 export interface TaskExecutionContext {
   documents: DocumentSet;
@@ -17,11 +26,34 @@ export interface DeliveryTaskPayload {
   prUrl?: string;
 }
 
+export interface ImplementationTaskPayload {
+  totalWorkUnits: number;
+  completedWorkUnits: number;
+  currentWorkUnitId?: string;
+  completedRequirementIds: string[];
+  blockedRequirementIds: string[];
+  changedFiles: string[];
+  sessionIds: string[];
+  validationArtifacts: string[];
+  lastAttempt?: {
+    workUnitId: string;
+    sessionId?: string;
+    attempt: number;
+  };
+}
+
+export interface ValidationTaskPayload {
+  featureValidation: ValidationExecutionResult;
+  regressionValidation: ValidationExecutionResult;
+}
+
 export interface TaskExecutionOutput extends TaskResult {
   capabilities?: CapabilityReport;
   repository?: RepositoryContext;
   runState?: RunState;
   delivery?: DeliveryTaskPayload;
+  implementation?: ImplementationTaskPayload;
+  validation?: ValidationTaskPayload;
 }
 
 export interface ExecutableTask {

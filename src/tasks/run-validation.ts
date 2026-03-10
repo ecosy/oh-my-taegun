@@ -38,6 +38,10 @@ export class RunValidationTask implements ExecutableTask {
             requiredAction: "Resolve failing validation commands and retry.",
             evidence: issues,
           },
+      validation: {
+        featureValidation: featureExec,
+        regressionValidation: regressionExec,
+      },
     };
   }
 }

@@ -72,9 +72,16 @@ task_contracts:
       - code_changes
       - changed_files
       - evidence_refs
+      - work_unit_ids
+      - session_ids
+      - validation_artifacts
+      - requirement_status_delta
     blocked_when:
       - unsupported_stack_without_fallback
       - missing_policy_for_high_risk_action
+      - llm_result_unparseable
+      - unrelated_dirty_workspace
+      - repeated_no_progress
 
   - type: run_validation_gates
     inputs:
@@ -106,6 +113,8 @@ task_contracts:
       - missing_remote_permissions
       - protected_branch_direct_push_attempt
       - pr_provider_unavailable
+      - target_branch_missing
+      - branch_policy_violation
 
   - type: summarize_outcome
     inputs:

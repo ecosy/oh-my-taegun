@@ -35,6 +35,12 @@ schemas:
         traceability: boolean
         feature_validation: boolean
         regression_validation: boolean
+      implementation:
+        total_work_units: number
+        completed_work_units: number
+        current_work_unit_id: string?
+        completed_requirement_ids: string[]
+        blocked_requirement_ids: string[]
 
   historical_run_state:
     path: ".omt/state/runs/<run-id>.json"
@@ -65,6 +71,12 @@ schemas:
       evidence_refs: string[]
       next_actions: string[]
       blocked_reason: object?
+      llm:
+        backend: "codex-cli?"
+        work_unit_id: "string?"
+        session_id: "string?"
+        model: "string?"
+        attempt: "number?"
 
   snapshot:
     path: ".omt/sessions/<run-id>/snapshot-<n>.json"
@@ -123,4 +135,29 @@ schemas:
       - evidence
       - local_state_summary
       - next_action
+      - retry_command
       - credential_or_policy_gap
+
+  llm_prompt:
+    path: ".omt/prompts/<run-id>/<work-unit-id>.md"
+    required:
+      - work_unit_id
+      - run_id
+      - objective
+
+  llm_event_log:
+    path: ".omt/llm-events/<run-id>/<work-unit-id>.jsonl"
+    required:
+      - codex_event_stream
+
+  llm_result:
+    path: ".omt/llm-results/<run-id>/<work-unit-id>.json"
+    required:
+      - status
+      - summary
+
+  validation_artifact:
+    path: ".omt/validation/<run-id>/<work-unit-id>.json"
+    required:
+      - attempt
+      - validation

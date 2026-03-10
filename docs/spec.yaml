@@ -119,6 +119,19 @@ validation:
     - delivery
   fail_behavior: reenter_loop_or_blocked
 
+llm_execution:
+  backend: codex-cli
+  model: gpt-5.2-codex-xhigh
+  work_unit_strategy: requirement-step
+  edit_mode: direct-edit
+  execution_scope: code-and-test
+  per_unit_max_attempts: 3
+  include_should_requirements: false
+  codex:
+    sandbox: workspace-write
+    approval: never
+    json_output: true
+
 delivery:
   target_outcome: real-pr
   fallback_on_remote_failure: blocked-report

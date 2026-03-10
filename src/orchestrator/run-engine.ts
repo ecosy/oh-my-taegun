@@ -11,11 +11,9 @@ import { writeBlockedReport } from "../delivery/blocked-report.js";
 import { attemptDelivery } from "./delivery.js";
 import { createTask } from "./task-dispatcher.js";
 import { evaluateTraceability } from "../validation/traceability-gate.js";
-import { evaluateFeatureValidation } from "../validation/feature-gate.js";
-import { evaluateRegressionValidation } from "../validation/regression-gate.js";
 import { evaluateDeliveryGate } from "../validation/delivery-gate.js";
-import { executeCommands } from "../validation/execute-commands.js";
 import type { BlockedReason, RunState, TaskState } from "../shared/types.js";
+import type { TaskExecutionOutput } from "../tasks/types.js";
 
 export interface RunOptions {
   projectRoot: string;
@@ -46,37 +44,112 @@ export async function runNightly(options: RunOptions): Promise<RunOutcome> {
   await ensureFeatureBranch(repository.localWorkspace, featureBranch).catch(() => undefined);
   const branch = await currentBranch(repository.localWorkspace).catch(async () => featureBranch);
 
-  const featureValidationStatic = evaluateFeatureValidation(capabilities);
-  const regressionValidationStatic = evaluateRegressionValidation(capabilities);
-  const featureValidationExec = featureValidationStatic.passed
-    ? await executeCommands(capabilities.testCommands.slice(0, 1), repository.localWorkspace)
-    : { passed: false, commands: [], outputs: [], issues: featureValidationStatic.issues };
-  const regressionValidationExec = regressionValidationStatic.passed
-    ? await executeCommands(uniqueCommands(capabilities.testCommands), repository.localWorkspace)
-    : { passed: false, commands: [], outputs: [], issues: regressionValidationStatic.issues };
-  const featureValidation = {
-    passed: featureValidationStatic.passed && featureValidationExec.passed,
-    issues: [...featureValidationStatic.issues, ...featureValidationExec.issues],
+  const initialRunState: RunState = {
+    run_id: runId,
+    profile_id: documents.profile.profile_id,
+    status: "running",
+    started_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    repository: {
+      canonical_repo_id: repository.canonicalRepoId,
+      local_workspace: repository.localWorkspace,
+      default_branch: repository.defaultBranch,
+    },
+    current_task: "repo-intake",
+    completed_tasks: [],
+    blocked_reasons: [],
+    delivery: {
+      mode: deliveryMode,
+      status: "pending",
+      target_branch: targetBranch,
+      feature_branch: branch,
+    },
+    validation: {
+      traceability: traceability.passed,
+      feature_validation: false,
+      regression_validation: false,
+    },
+    implementation: {
+      total_work_units: 0,
+      completed_work_units: 0,
+      completed_requirement_ids: [],
+      blocked_requirement_ids: [],
+    },
   };
-  const regressionValidation = {
-    passed: regressionValidationStatic.passed && regressionValidationExec.passed,
-    issues: [...regressionValidationStatic.issues, ...regressionValidationExec.issues],
+
+  const coreTaskResults = await runTasks({
+    orderedTaskIds: [
+      "repo-intake",
+      "capability-discovery",
+      "interactive-design",
+      "freeze-scope",
+      "implement-changes",
+      "run-validation",
+    ],
+    documents,
+    repository,
+    capabilities,
+    runId,
+    featureBranch: branch,
+    targetBranch,
+    runState: initialRunState,
+  });
+
+  const implementationResult = coreTaskResults.find((result) => result.taskId === "implement-changes")?.output.implementation;
+  const validationResult = coreTaskResults.find((result) => result.taskId === "run-validation")?.output.validation;
+  const featureValidation = validationResult?.featureValidation ?? {
+    passed: false,
+    commands: [],
+    outputs: [],
+    issues: ["Feature validation did not execute."],
+  };
+  const regressionValidation = validationResult?.regressionValidation ?? {
+    passed: false,
+    commands: [],
+    outputs: [],
+    issues: ["Regression validation did not execute."],
   };
   const deliveryGate = evaluateDeliveryGate({
     deliveryMode,
     originUrl: repository.originUrl,
     targetBranch,
+    featureBranch: branch,
     featureValidationPassed: featureValidation.passed,
     regressionValidationPassed: regressionValidation.passed,
     capabilities,
   });
 
+  const taskBlockedReasons = coreTaskResults
+    .map((result) => result.output.blockedReason)
+    .filter((reason): reason is BlockedReason => Boolean(reason));
   const blockedReasons = collectBlockedReasons({
     traceability,
     featureIssues: featureValidation.issues,
     regressionIssues: regressionValidation.issues,
     deliveryIssues: deliveryGate.issues,
+    taskBlockedReasons,
   });
+
+  const draftRunState: RunState = {
+    ...initialRunState,
+    updated_at: new Date().toISOString(),
+    current_task: blockedReasons.length > 0 ? (taskBlockedReasons[0]?.code.startsWith("delivery") ? "deliver" : "run-validation") : "deliver",
+    blocked_reasons: blockedReasons,
+    validation: {
+      traceability: traceability.passed,
+      feature_validation: featureValidation.passed,
+      regression_validation: regressionValidation.passed,
+    },
+    implementation: implementationResult
+      ? {
+        total_work_units: implementationResult.totalWorkUnits,
+        completed_work_units: implementationResult.completedWorkUnits,
+        current_work_unit_id: implementationResult.currentWorkUnitId,
+        completed_requirement_ids: implementationResult.completedRequirementIds,
+        blocked_requirement_ids: implementationResult.blockedRequirementIds,
+      }
+      : initialRunState.implementation,
+  };
 
   const deliveryAttempt = blockedReasons.length === 0 && deliveryMode === "real-pr"
     ? await attemptDelivery({
@@ -84,32 +157,7 @@ export async function runNightly(options: RunOptions): Promise<RunOutcome> {
       originUrl: repository.originUrl,
       featureBranch: branch,
       targetBranch,
-      runState: {
-        run_id: runId,
-        profile_id: documents.profile.profile_id,
-        status: "running",
-        started_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        repository: {
-          canonical_repo_id: repository.canonicalRepoId,
-          local_workspace: repository.localWorkspace,
-          default_branch: repository.defaultBranch,
-        },
-        current_task: "deliver",
-        completed_tasks: [],
-        blocked_reasons: [],
-        delivery: {
-          mode: deliveryMode,
-          status: "pending",
-          target_branch: targetBranch,
-          feature_branch: branch,
-        },
-        validation: {
-          traceability: traceability.passed,
-          feature_validation: featureValidation.passed,
-          regression_validation: regressionValidation.passed,
-        },
-      },
+      runState: draftRunState,
     })
     : {
       blockedReasons: [],
@@ -119,21 +167,11 @@ export async function runNightly(options: RunOptions): Promise<RunOutcome> {
 
   const allBlockedReasons = dedupeReasons([...blockedReasons, ...deliveryAttempt.blockedReasons]);
 
-  const runState: RunState = {
-    run_id: runId,
-    profile_id: documents.profile.profile_id,
+  const finalRunState: RunState = {
+    ...draftRunState,
     status: allBlockedReasons.length > 0 ? "blocked" : "completed",
-    started_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    repository: {
-      canonical_repo_id: repository.canonicalRepoId,
-      local_workspace: repository.localWorkspace,
-      default_branch: repository.defaultBranch,
-    },
     current_task: allBlockedReasons.length > 0 ? "deliver" : "summarize-outcome",
-    completed_tasks: allBlockedReasons.length > 0
-      ? ["repo-intake", "capability-discovery", "freeze-scope", "run-validation"]
-      : ["repo-intake", "capability-discovery", "freeze-scope", "run-validation", "deliver"],
     blocked_reasons: allBlockedReasons,
     delivery: {
       mode: deliveryMode,
@@ -143,25 +181,45 @@ export async function runNightly(options: RunOptions): Promise<RunOutcome> {
       pr_url: deliveryAttempt.pullRequest?.url,
       remote_pushed: deliveryAttempt.remotePushed,
     },
-    validation: {
-      traceability: traceability.passed,
-      feature_validation: featureValidation.passed,
-      regression_validation: regressionValidation.passed,
-    },
+    completed_tasks: coreTaskResults
+      .filter((result) => result.output.status === "passed")
+      .map((result) => result.taskId),
   };
 
-  const taskResults = await runTasks({
-    documents,
-    repository,
-    capabilities,
-    runId,
-    featureBranch: branch,
-    targetBranch,
-    runState,
-  });
+  const finalTaskResults = [
+    ...coreTaskResults,
+    {
+      taskId: "deliver",
+      output: await createTask("deliver").execute({
+        documents,
+        repository,
+        capabilities,
+        runId,
+        featureBranch: branch,
+        targetBranch,
+        runState: finalRunState,
+      }),
+    },
+    {
+      taskId: "summarize-outcome",
+      output: await createTask("summarize-outcome").execute({
+        documents,
+        repository,
+        capabilities,
+        runId,
+        featureBranch: branch,
+        targetBranch,
+        runState: finalRunState,
+      }),
+    },
+  ];
 
-  await writeRunState(repository.localWorkspace, runState);
-  await writeCoreTaskStates(repository.localWorkspace, runId, taskResults, allBlockedReasons);
+  finalRunState.completed_tasks = finalTaskResults
+    .filter((result) => result.output.status === "passed")
+    .map((result) => result.taskId);
+
+  await writeRunState(repository.localWorkspace, finalRunState);
+  await writeCoreTaskStates(repository.localWorkspace, runId, finalTaskResults, allBlockedReasons);
   await appendEvidence(repository.localWorkspace, {
     id: `runtime-${runId}`,
     source_type: "runtime",
@@ -178,14 +236,18 @@ export async function runNightly(options: RunOptions): Promise<RunOutcome> {
     ac_status: Object.fromEntries(
       documents.acceptance.acceptance_criteria.map((acceptance) => [
         acceptance.id,
-        allBlockedReasons.length > 0 ? "blocked" : "pass",
+        allBlockedReasons.length > 0 && acceptance.requirement_ids.some((requirementId) =>
+          finalRunState.implementation?.blocked_requirement_ids.includes(requirementId),
+        )
+          ? "blocked"
+          : "pass",
       ]),
     ),
     failing_tests: [
       ...featureValidation.issues,
       ...regressionValidation.issues,
     ],
-    changed_files: [],
+    changed_files: implementationResult?.changedFiles ?? [],
     blockers: allBlockedReasons.map((reason) => reason.code),
     next_actions: allBlockedReasons.map((reason) => reason.requiredAction ?? "Retry after resolving the issue."),
     validation_summary: {
@@ -198,15 +260,15 @@ export async function runNightly(options: RunOptions): Promise<RunOutcome> {
     repository.localWorkspace,
     runId,
     1,
-    renderHandoff(runState, allBlockedReasons),
+    renderHandoff(finalRunState, allBlockedReasons),
   );
 
   const blockedReportPath = allBlockedReasons.length > 0
-    ? await writeBlockedReport(repository.localWorkspace, runState, allBlockedReasons)
+    ? await writeBlockedReport(repository.localWorkspace, finalRunState, allBlockedReasons)
     : undefined;
 
   return {
-    runState,
+    runState: finalRunState,
     blockedReportPath,
   };
 }
@@ -220,8 +282,9 @@ function collectBlockedReasons(input: {
   featureIssues: string[];
   regressionIssues: string[];
   deliveryIssues: string[];
+  taskBlockedReasons: BlockedReason[];
 }): BlockedReason[] {
-  const reasons: BlockedReason[] = [];
+  const reasons: BlockedReason[] = [...input.taskBlockedReasons];
 
   for (const issue of input.traceability.issues) {
     reasons.push({
@@ -278,15 +341,15 @@ function dedupeReasons(reasons: BlockedReason[]): BlockedReason[] {
 async function writeCoreTaskStates(
   workspace: string,
   runId: string,
-  taskResults: Array<{ taskId: string; status: TaskState["status"]; blockedReason?: BlockedReason }>,
+  taskResults: Array<{ taskId: string; output: TaskExecutionOutput }>,
   blockedReasons: BlockedReason[],
 ): Promise<void> {
   const tasks: TaskState[] = taskResults.map((result) =>
     createTaskState(
       result.taskId,
       runId,
-      result.status,
-      result.blockedReason ?? (result.status === "blocked" ? blockedReasons[0] : undefined),
+      result.output,
+      result.output.blockedReason ?? (result.output.status === "blocked" ? blockedReasons[0] : undefined),
     ),
   );
 
@@ -298,20 +361,29 @@ async function writeCoreTaskStates(
 function createTaskState(
   taskId: string,
   runId: string,
-  status: TaskState["status"],
+  output: TaskExecutionOutput,
   blockedReason?: BlockedReason,
 ): TaskState {
   return {
     task_id: taskId,
     run_id: runId,
-    status,
+    status: output.status,
     attempts: 1,
     started_at: new Date().toISOString(),
     completed_at: new Date().toISOString(),
-    artifacts: [],
-    evidence_refs: [],
-    next_actions: blockedReason?.requiredAction ? [blockedReason.requiredAction] : [],
+    artifacts: output.artifacts,
+    evidence_refs: output.evidenceRefs,
+    next_actions: output.nextActions.length > 0 ? output.nextActions : (blockedReason?.requiredAction ? [blockedReason.requiredAction] : []),
     blocked_reason: blockedReason,
+    llm: output.implementation?.lastAttempt
+      ? {
+        backend: "codex-cli",
+        work_unit_id: output.implementation.lastAttempt.workUnitId,
+        session_id: output.implementation.lastAttempt.sessionId,
+        model: "gpt-5.2-codex-xhigh",
+        attempt: output.implementation.lastAttempt.attempt,
+      }
+      : undefined,
   };
 }
 
@@ -358,6 +430,7 @@ ${blockedReasons.map((reason) => `- ${reason.requiredAction ?? "Investigate and 
 }
 
 async function runTasks(context: {
+  orderedTaskIds: string[];
   documents: Awaited<ReturnType<typeof loadDocuments>>;
   repository: Awaited<ReturnType<typeof resolveRepository>>;
   capabilities: Awaited<ReturnType<typeof detectCapabilities>>;
@@ -365,22 +438,11 @@ async function runTasks(context: {
   featureBranch: string;
   targetBranch: string;
   runState: RunState;
-}): Promise<Array<{ taskId: string; status: TaskState["status"]; blockedReason?: BlockedReason }>> {
-  const orderedTaskIds = [
-    "repo-intake",
-    "capability-discovery",
-    "interactive-design",
-    "freeze-scope",
-    "implement-changes",
-    "run-validation",
-    "deliver",
-    "summarize-outcome",
-  ];
-
-  const results: Array<{ taskId: string; status: TaskState["status"]; blockedReason?: BlockedReason }> = [];
-  for (const taskId of orderedTaskIds) {
+}): Promise<Array<{ taskId: string; output: TaskExecutionOutput }>> {
+  const results: Array<{ taskId: string; output: TaskExecutionOutput }> = [];
+  for (const taskId of context.orderedTaskIds) {
     const task = createTask(taskId);
-    const result = await task.execute({
+    const output = await task.execute({
       documents: context.documents,
       repository: context.repository,
       capabilities: context.capabilities,
@@ -389,11 +451,10 @@ async function runTasks(context: {
       targetBranch: context.targetBranch,
       runState: context.runState,
     });
-    results.push({
-      taskId,
-      status: result.status,
-      blockedReason: result.blockedReason,
-    });
+    results.push({ taskId, output });
+    if (output.status === "blocked") {
+      break;
+    }
   }
   return results;
 }
