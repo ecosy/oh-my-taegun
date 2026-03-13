@@ -1,0 +1,21 @@
+version: 2
+product_id: oh-my-taegun
+ambiguity:
+  threshold: 0.20
+  weights:
+    goal_clarity: 0.35
+    constraint_clarity: 0.25
+    success_criteria: 0.20
+    capability_clarity: 0.10
+    model_policy_clarity: 0.10
+ontology_similarity:
+  threshold: 0.95
+  weights:
+    name_overlap: 0.50
+    type_match: 0.30
+    exact_match: 0.20
+pathology:
+  stagnation_window: 3
+  oscillation_period: 2
+  repetitive_feedback_overlap: 0.70
+  hard_cap_generations: 30

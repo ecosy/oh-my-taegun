@@ -1,0 +1,168 @@
+version: 2
+profile_id: omt-v2-spec-first
+product_id: oh-my-taegun
+source_documents:
+  positioning: docs/v2/positioning.md
+  spec: docs/v2/spec.md
+  requirements: docs/v2/requirements.yaml
+  acceptance: docs/v2/acceptance.yaml
+  test_plan: docs/v2/test-plan.yaml
+  state_schema: docs/v2/state-schema.yaml
+  task_contracts: docs/v2/task-contracts.yaml
+  test_matrix: docs/v2/test-matrix.yaml
+  model_contracts: docs/v2/model-contracts.yaml
+  metrics: docs/v2/metrics.yaml
+  migration: docs/v2/migration.md
+inputs:
+  repository:
+    source: prompt
+    require_one_of:
+      - git_url
+      - local_clone_path
+  operator:
+    mode: solo
+  model_policy:
+    source: design_interview
+    prerequisites:
+      - doctor_survey_completed
+      - operator_confirmation_recorded
+cli_contracts:
+  doctor:
+    outputs:
+      - model_environment_survey
+      - verified_capability_report
+      - credential_gaps
+      - git_runtime_context
+  inspect:
+    mode: readonly
+    allowlist:
+      - rg
+      - grep
+      - ls
+      - find
+      - wc
+      - cat
+      - head
+      - tail
+      - pwd
+      - printf
+    outputs:
+      - verified_capability_report
+      - evidence_refs
+  design:
+    phases:
+      - doctor
+      - model_survey
+      - interview
+      - ontology
+      - seed
+      - freeze
+    outputs:
+      - execution_model_policy
+      - design_package
+      - ambiguity_scorecard
+      - open_questions
+  run:
+    prerequisites:
+      - design_package_frozen
+      - execution_model_policy_present
+    outputs:
+      - run_state
+      - convergence_snapshot
+      - verifier_decisions
+      - validation_summary
+  resume:
+    outputs:
+      - phase
+      - execution_model_policy
+      - latest_snapshot
+      - latest_handoff
+      - next_actions
+  report:
+    outputs:
+      - execution_model_policy
+      - ambiguity_scorecard
+      - convergence_snapshot
+      - pathology_signals
+      - validation_summary
+      - delivery_status
+execution:
+  mode: sequential
+  role_model:
+    - interviewer
+    - ontologist
+    - planner
+    - executor
+    - verifier
+  phases:
+    - interview
+    - ontology
+    - seed
+    - plan
+    - execute
+    - verify
+    - converge
+    - deliver
+  stop_conditions:
+    - seed_frozen
+    - ambiguity_below_threshold
+    - validation_complete
+    - delivery_finished_or_blocked
+verifier:
+  decisions:
+    - id: verifier_pass
+      when:
+        - design_converged
+        - feature_validation_passed
+        - regression_validation_passed
+    - id: verifier_replan
+      when:
+        - ontology_drift_detected
+    - id: verifier_block
+      when:
+        - validation_missing
+        - required_capability_unverified
+        - policy_unconfirmed
+capability_inspect:
+  verified_required_for_execution:
+    - test_commands
+    - build_commands
+    - deployment_targets
+    - external_write_surfaces
+  unverified_behavior: blocked_or_question
+  allowlist:
+    - rg
+    - grep
+    - ls
+    - find
+    - wc
+    - cat
+    - head
+    - tail
+    - pwd
+    - printf
+recovery:
+  source_of_truth: event_log
+  snapshot_role: derived_state
+  phase_aware_resume: true
+tasks:
+  - id: doctor_survey
+    type: doctor_survey
+  - id: capability_inspect
+    type: capability_inspect
+  - id: interactive_design
+    type: interactive_design_v2
+  - id: freeze_design
+    type: freeze_design_package
+  - id: plan_work
+    type: plan_work_units
+  - id: execute_work
+    type: execute_work_units
+  - id: verify_progress
+    type: verify_progress
+  - id: deliver_result
+    type: deliver_result
+  - id: resume_run
+    type: resume_run
+  - id: report_run
+    type: report_run

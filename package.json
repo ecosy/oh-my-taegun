@@ -22,6 +22,13 @@
     "test:recovery": "vitest run tests/recovery",
     "test:policy": "vitest run tests/policy",
     "test:docs": "vitest run tests/docs",
+    "test:docs:v2": "vitest run tests/v2/docs",
+    "test:unit:v2": "vitest run tests/v2/unit",
+    "test:integration:v2": "vitest run tests/v2/integration",
+    "test:recovery:v2": "vitest run tests/v2/recovery",
+    "test:policy:v2": "vitest run tests/v2/policy",
+    "test:e2e:v2": "vitest run tests/v2/e2e",
+    "test:model-parity:v2": "vitest run tests/v2/model-parity",
     "smoke:chat-dogfood:real": "tsx scripts/smoke-chat-dogfood-real.ts",
     "smoke:chat-dogfood:pr": "tsx scripts/smoke-chat-dogfood-pr.ts"
   },

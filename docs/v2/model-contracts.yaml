@@ -1,0 +1,41 @@
+version: 2
+product_id: oh-my-taegun
+model_environment_survey:
+  required_fields:
+    - surveyed_at
+    - surveyed_models
+    - approved_models
+    - reasoning_efforts
+    - constraints
+    - verifier_model_allowed
+execution_model_policy:
+  required_fields:
+    - surveyed_models
+    - approved_models
+    - default_design_model
+    - default_execution_model
+    - default_verifier_model
+    - allowed_reasoning_efforts
+    - fallback_chain
+    - max_attempts_by_phase
+    - work_unit_budget_profile
+    - requires_manual_override_for
+    - recorded_at
+  rules:
+    - no_unapproved_model_in_fallback_chain
+    - model_policy_required_before_seed_freeze
+budget_profiles:
+  low_capability:
+    max_requirement_ids: 1
+    max_acceptance_ids: 2
+    max_changed_files: 4
+    max_validation_commands: 2
+    max_attempts: 3
+    max_open_questions_per_round: 5
+  high_capability:
+    max_requirement_ids: 2
+    max_acceptance_ids: 3
+    max_changed_files: 8
+    max_validation_commands: 3
+    max_attempts: 3
+    max_open_questions_per_round: 7

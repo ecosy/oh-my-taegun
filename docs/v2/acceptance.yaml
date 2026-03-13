@@ -1,0 +1,59 @@
+version: 2
+product_id: oh-my-taegun
+acceptance_criteria:
+  - id: V2-AC-001
+    requirement_ids: [V2-REQ-001, V2-REQ-002]
+    title: Model policy capture during design
+    description: "design 단계는 model survey와 operator confirmation을 거쳐 execution model policy를 생성해야 하며, 특정 baseline 모델명을 요구하지 않아야 한다."
+    verification:
+      type: contract
+      method: docs-plus-tests
+  - id: V2-AC-002
+    requirement_ids: [V2-REQ-003]
+    title: Work unit budget enforcement
+    description: "work unit은 정의된 budget profile에 따라 bounded하게 분해되어야 한다."
+    verification:
+      type: contract
+      method: docs-plus-tests
+  - id: V2-AC-003
+    requirement_ids: [V2-REQ-004]
+    title: Ambiguity gate
+    description: "ambiguity threshold 초과 시 seed freeze가 금지되어야 한다."
+    verification:
+      type: contract
+      method: docs-plus-tests
+  - id: V2-AC-004
+    requirement_ids: [V2-REQ-005, V2-REQ-006]
+    title: Convergence and validation separation
+    description: "design convergence와 implementation validation은 পৃথ পৃথ gate로 정의되어야 하며 verifier가 최종 판정을 내린다."
+    verification:
+      type: contract
+      method: docs-plus-tests
+  - id: V2-AC-005
+    requirement_ids: [V2-REQ-007]
+    title: Verified capability only
+    description: "verified capability만 execution에 사용되고 unverified capability는 blocked 또는 question으로 처리되어야 한다."
+    verification:
+      type: contract
+      method: docs-plus-tests
+  - id: V2-AC-006
+    requirement_ids: [V2-REQ-008]
+    title: Event log recovery
+    description: "event log와 snapshot 규칙이 phase-aware resume를 지원해야 한다."
+    verification:
+      type: contract
+      method: docs-plus-tests
+  - id: V2-AC-007
+    requirement_ids: [V2-REQ-009]
+    title: Low/high policy parity
+    description: "서로 다른 approved model policy 간에도 acceptance-equivalent outcome을 목표로 해야 한다."
+    verification:
+      type: contract
+      method: docs-plus-tests
+  - id: V2-AC-008
+    requirement_ids: [V2-REQ-010]
+    title: Legacy regression floor preserved
+    description: "V2는 기존 V1 regression floor를 깨지 않는 방향으로 도입되어야 한다."
+    verification:
+      type: contract
+      method: docs-plus-tests

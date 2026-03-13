@@ -1,0 +1,63 @@
+version: 2
+product_id: oh-my-taegun
+test_plan:
+  - id: V2-TP-001
+    acceptance_ids: [V2-AC-001]
+    category: design
+    method: docs-plus-tests
+    stage: m0-m1
+    description: "model survey와 execution model policy capture contract를 검증한다."
+  - id: V2-TP-002
+    acceptance_ids: [V2-AC-002]
+    category: planning
+    method: docs-plus-tests
+    stage: m2
+    description: "work unit budget profile과 planner splitting contract를 검증한다."
+  - id: V2-TP-003
+    acceptance_ids: [V2-AC-003]
+    category: planning
+    method: docs-plus-tests
+    stage: m3
+    description: "ambiguity score와 seed freeze gate contract를 검증한다."
+  - id: V2-TP-004
+    acceptance_ids: [V2-AC-004]
+    category: verification
+    method: docs-plus-tests
+    stage: m4
+    description: "design convergence와 implementation validation 분리 contract를 검증한다."
+  - id: V2-TP-005
+    acceptance_ids: [V2-AC-005]
+    category: capability
+    method: docs-plus-tests
+    stage: m6
+    description: "verified/unverified capability execution policy를 검증한다."
+  - id: V2-TP-006
+    acceptance_ids: [V2-AC-006]
+    category: recovery
+    method: docs-plus-tests
+    stage: m5
+    description: "event replay, snapshot fallback, phase-aware resume contract를 검증한다."
+  - id: V2-TP-007
+    acceptance_ids: [V2-AC-007]
+    category: parity
+    method: docs-plus-tests
+    stage: m8
+    description: "low-capability policy와 high-capability policy parity contract를 검증한다."
+  - id: V2-TP-008
+    acceptance_ids: [V2-AC-008]
+    category: migration
+    method: docs-plus-tests
+    stage: cross-cutting
+    description: "legacy regression floor preservation contract를 검증한다."
+  - id: V2-TP-009
+    acceptance_ids: [V2-AC-007]
+    category: fixtures
+    method: docs-plus-tests
+    stage: m8
+    description: "fixture-model-survey-company-low-only와 fixture-model-survey-company-low-plus-high 시나리오가 정의되어 있는지 검증한다."
+  - id: V2-TP-010
+    acceptance_ids: [V2-AC-001, V2-AC-005, V2-AC-006]
+    category: cli-contract
+    method: docs-plus-tests
+    stage: m6-m7
+    description: "`doctor`, `inspect`, `design`, `report`, `resume`의 public contract가 정의되어 있는지 검증한다."

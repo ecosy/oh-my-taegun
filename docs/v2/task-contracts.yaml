@@ -1,0 +1,95 @@
+version: 2
+product_id: oh-my-taegun
+task_contracts:
+  - type: doctor_survey
+    inputs:
+      - local_workspace
+      - codex_runtime
+    outputs:
+      - model_environment_survey
+      - git_runtime_context
+      - credential_gaps
+  - type: capability_inspect
+    inputs:
+      - local_workspace
+      - allowlist
+    outputs:
+      - verified_capability_report
+      - evidence_refs
+  - type: interactive_design_v2
+    inputs:
+      - model_environment_survey
+      - verified_capability_report
+      - repository_context
+    outputs:
+      - execution_model_policy
+      - question_records
+      - ambiguity_scorecard
+      - ontology_seed
+      - open_questions
+  - type: freeze_design_package
+    inputs:
+      - execution_model_policy
+      - ambiguity_scorecard
+      - ontology_seed
+      - open_questions
+    outputs:
+      - design_package
+      - freeze_decision
+    blocked_when:
+      - model_policy_unconfirmed
+      - ambiguity_above_threshold
+      - open_questions_remaining
+  - type: plan_work_units
+    inputs:
+      - design_package
+      - work_unit_budget_profile
+    outputs:
+      - work_units
+      - budget_assignment
+    blocked_when:
+      - oversized_work_unit
+  - type: execute_work_units
+    inputs:
+      - work_units
+      - verified_capability_report
+      - execution_model_policy
+    outputs:
+      - changed_files
+      - validation_requests
+      - execution_events
+    blocked_when:
+      - required_capability_unverified
+  - type: verify_progress
+    inputs:
+      - changed_files
+      - validation_results
+      - convergence_snapshot
+    outputs:
+      - verifier_decisions
+      - pathology_signals
+    blocked_when:
+      - convergence_without_validation
+  - type: deliver_result
+    inputs:
+      - verifier_decisions
+      - delivery_policy
+    outputs:
+      - delivery_status
+  - type: resume_run
+    inputs:
+      - event_log
+      - snapshots
+    outputs:
+      - active_phase
+      - latest_snapshot
+      - execution_model_policy
+      - next_actions
+  - type: report_run
+    inputs:
+      - execution_model_policy
+      - verifier_decisions
+      - pathology_signals
+      - validation_summary
+    outputs:
+      - report_payload

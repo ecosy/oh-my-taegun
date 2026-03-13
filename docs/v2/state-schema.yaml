@@ -1,0 +1,41 @@
+version: 2
+product_id: oh-my-taegun
+state_model:
+  source_of_truth: event_log
+  snapshot_role: derived_state
+  phase_aware_resume: true
+paths:
+  model_survey: ".omt/v2/design/model-survey.json"
+  interview_log: ".omt/v2/design/interview.jsonl"
+  ontology_seed: ".omt/v2/design/ontology.json"
+  frozen_seed: ".omt/v2/design/seed.json"
+  event_log: ".omt/v2/events/<run-id>.jsonl"
+  run_state: ".omt/v2/state/run.json"
+  snapshots: ".omt/v2/snapshots/<run-id>/snapshot-*.json"
+  reports: ".omt/v2/reports/<run-id>.json"
+event_types:
+  - doctor_survey_completed
+  - model_policy_confirmed
+  - question_asked
+  - answer_recorded
+  - ambiguity_scored
+  - ontology_updated
+  - seed_frozen
+  - work_unit_planned
+  - work_unit_started
+  - work_unit_completed
+  - verifier_decision_recorded
+  - validation_completed
+  - delivery_completed
+  - blocked_raised
+  - resume_prepared
+resume_phases:
+  - design
+  - plan
+  - execute
+  - verify
+  - deliver
+recovery_rules:
+  latest_snapshot_corrupt: fallback_to_previous_healthy_snapshot
+  missing_model_policy: blocked
+  missing_event_log: blocked

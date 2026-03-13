@@ -1,0 +1,67 @@
+version: 2
+product_id: oh-my-taegun
+test_matrix:
+  - suite: docs-v2
+    command: "npm run test:docs:v2"
+    covers:
+      - positioning_traceability
+      - model_contracts_schema
+      - state_schema
+      - v2_traceability
+  - suite: unit-v2
+    command: "npm run test:unit:v2"
+    covers:
+      - model_survey_normalization
+      - work_unit_budget
+      - ambiguity_score
+      - ontology_similarity
+      - pathology_signals
+      - verifier_decision_matrix
+      - verified_capability_report
+  - suite: integration-v2
+    command: "npm run test:integration:v2"
+    covers:
+      - design_model_policy_capture
+      - planner_budget_splitting
+      - design_gate
+      - convergence_vs_validation
+      - inspect_allowlist
+      - doctor_command_contract
+      - design_command_contract
+      - report_command_contract
+      - resume_command_contract
+  - suite: recovery-v2
+    command: "npm run test:recovery:v2"
+    covers:
+      - event_replay
+      - design_phase_resume
+      - run_phase_resume
+      - snapshot_fallback_v2
+  - suite: policy-v2
+    command: "npm run test:policy:v2"
+    covers:
+      - no_oversized_work_unit
+      - no_done_on_convergence_alone
+      - no_unverified_capability_execution
+  - suite: e2e-v2
+    command: "npm run test:e2e:v2"
+    covers:
+      - design_low_policy_smoke
+      - run_low_policy_smoke
+      - blocked_path_low_policy
+      - repair_path_low_policy
+  - suite: model-parity-v2
+    command: "npm run test:model-parity:v2"
+    covers:
+      - low_vs_high_policy
+fixtures:
+  - id: fixture-design-ambiguous-greenfield
+  - id: fixture-design-brownfield-missing-policy
+  - id: fixture-model-survey-company-low-only
+  - id: fixture-model-survey-company-low-plus-high
+  - id: fixture-run-baseline-noop
+  - id: fixture-run-basic-bugfix
+  - id: fixture-run-multi-file-feature
+  - id: fixture-run-repair-on-second
+  - id: fixture-run-out-of-scope-blocked
+  - id: fixture-delivery-blocked-no-permission
