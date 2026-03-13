@@ -1,0 +1,17 @@
+acceptance_criteria:
+  - id: AC-CHAT-001
+    requirement_ids: [REQ-CHAT-001]
+    title: Browser renders streaming assistant text
+    description: The chat page updates assistant output incrementally while the request is in flight.
+    verification:
+      automated:
+        commands:
+          - npm test
+  - id: AC-CHAT-002
+    requirement_ids: [REQ-CHAT-002]
+    title: Server blocks clearly without API key
+    description: Missing credentials return a clear server error instead of hanging.
+    verification:
+      automated:
+        commands:
+          - npm test

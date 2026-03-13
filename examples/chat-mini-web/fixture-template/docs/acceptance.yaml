@@ -1,0 +1,25 @@
+acceptance_criteria:
+  - id: AC-CHAT-001
+    requirement_ids: [REQ-CHAT-001]
+    title: UI accumulates stream text
+    description: The assistant message includes streamed text and pending state clears on done.
+    verification:
+      automated:
+        commands:
+          - npm test
+  - id: AC-CHAT-002
+    requirement_ids: [REQ-CHAT-002]
+    title: Server emits done and token events
+    description: Responses API completion events become downstream SSE events.
+    verification:
+      automated:
+        commands:
+          - npm test
+  - id: AC-CHAT-003
+    requirement_ids: [REQ-CHAT-003]
+    title: Nested upstream failures surface explicitly
+    description: Quota and response.failed errors reach the client with precise messages.
+    verification:
+      automated:
+        commands:
+          - npm test

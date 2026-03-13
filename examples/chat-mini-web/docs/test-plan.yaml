@@ -1,0 +1,13 @@
+test_plan:
+  - id: TP-CHAT-001
+    acceptance_ids: [AC-CHAT-001]
+    category: integration
+    method: automated
+    stage: nightly
+    description: Verify SSE token streaming from the server.
+  - id: TP-CHAT-002
+    acceptance_ids: [AC-CHAT-002]
+    category: policy
+    method: automated
+    stage: nightly
+    description: Verify missing API key returns a clear failure.

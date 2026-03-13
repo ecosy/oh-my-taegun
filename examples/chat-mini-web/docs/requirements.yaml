@@ -1,0 +1,11 @@
+requirements:
+  - id: REQ-CHAT-001
+    priority: MUST
+    title: Browser text streaming chat
+    description: Show user messages and assistant streamed text in the browser.
+    source_refs: [chat-mini-web]
+  - id: REQ-CHAT-002
+    priority: MUST
+    title: Backend OpenAI relay
+    description: The server must call the OpenAI Responses API and relay streamed text safely.
+    source_refs: [chat-mini-web]

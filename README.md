@@ -33,6 +33,7 @@
 - [state-schema](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/state-schema.yaml)
 - [task-contracts](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/task-contracts.yaml)
 - [test-matrix](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/test-matrix.yaml)
+- [e2e-playbook](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/e2e-playbook.md)
 - [publish-policy](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/publish-policy.md)
 - [repo-layout](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/repo-layout.md)
 
@@ -70,3 +71,5 @@ npm run design -- --repo-path .
 ## 저장소 구조
 
 현재 구조와 공개/로컬 구분 기준은 [repo-layout](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/repo-layout.md)에 정리되어 있다.
+
+작은 검증용 앱과 fixture 기반 단계별 smoke는 [e2e-playbook](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/e2e-playbook.md)와 [`examples/chat-mini-web`](/Users/ryan/Documents/AI-Project/oh-my-taegun/examples/chat-mini-web/README.md)를 기준으로 실행한다.

@@ -1,0 +1,131 @@
+:root {
+  color-scheme: light;
+  --bg: #f5efe4;
+  --card: #fffaf0;
+  --ink: #18222c;
+  --accent: #0f766e;
+  --accent-soft: #d7f3ef;
+  --border: #d8c7a3;
+  --danger: #b42318;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top, #fff9ee, transparent 38%),
+    linear-gradient(180deg, #efe3c7 0%, var(--bg) 45%, #efe6d5 100%);
+}
+
+.shell {
+  width: min(760px, calc(100% - 32px));
+  margin: 32px auto;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--card) 92%, white);
+  box-shadow: 0 24px 60px rgba(24, 34, 44, 0.08);
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lede {
+  margin: 0 0 24px;
+  max-width: 54ch;
+}
+
+.messages {
+  min-height: 320px;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.message {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+}
+
+.message-user {
+  background: var(--accent-soft);
+}
+
+.message-assistant {
+  background: #fff;
+}
+
+.composer {
+  display: grid;
+  gap: 12px;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 84px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  font: inherit;
+  background: #fff;
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font: inherit;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status {
+  margin: 0;
+  color: #51606d;
+}
+
+.error {
+  color: var(--danger);
+  margin-top: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

@@ -1,0 +1,16 @@
+requirements:
+  - id: REQ-CHAT-001
+    priority: MUST
+    title: Render streamed assistant text
+    description: Append streamed token text into the assistant message and return to idle on completion.
+    source_refs: [chat-dogfood]
+  - id: REQ-CHAT-002
+    priority: MUST
+    title: Relay Responses API stream safely
+    description: Convert Responses API events into downstream token, done, and error events.
+    source_refs: [chat-dogfood]
+  - id: REQ-CHAT-003
+    priority: MUST
+    title: Surface explicit upstream failures
+    description: Show nested upstream error reasons instead of a generic streaming error.
+    source_refs: [chat-dogfood]

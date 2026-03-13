@@ -1,0 +1,13 @@
+{
+  "name": "chat-mini-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server.js",
+    "test": "node --test tests/*.smoke.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

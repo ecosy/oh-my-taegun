@@ -380,7 +380,7 @@ function createTaskState(
         backend: "codex-cli",
         work_unit_id: output.implementation.lastAttempt.workUnitId,
         session_id: output.implementation.lastAttempt.sessionId,
-        model: "gpt-5.2-codex-xhigh",
+        model: output.implementation.lastAttempt.model,
         attempt: output.implementation.lastAttempt.attempt,
       }
       : undefined,

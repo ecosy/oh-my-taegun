@@ -41,9 +41,11 @@ test_matrix:
   - suite: e2e
     command: "npm run test:e2e"
     covers:
+      - baseline_noop_requirement_path
+      - single_bugfix_requirement_path
+      - multi_file_feature_addition_path
+      - out_of_scope_blocked_path
       - local_clone_to_real_pr_happy_path
-      - git_url_to_blocked_report_path
-      - unsupported_repo_blocked_path
 
   - suite: docs-traceability
     command: "npm run test:docs"

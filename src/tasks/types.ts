@@ -38,6 +38,7 @@ export interface ImplementationTaskPayload {
   lastAttempt?: {
     workUnitId: string;
     sessionId?: string;
+    model?: string;
     attempt: number;
   };
 }

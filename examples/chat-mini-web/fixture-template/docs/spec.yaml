@@ -1,0 +1,23 @@
+version: 1
+profile_id: chat-mini-web-dogfood
+product_id: chat-mini-web
+source_documents:
+  requirements: docs/requirements.yaml
+  acceptance: docs/acceptance.yaml
+  test_plan: docs/test-plan.yaml
+  state_schema: ../../../docs/state-schema.yaml
+  task_contracts: ../../../docs/task-contracts.yaml
+  test_matrix: ../../../docs/test-matrix.yaml
+llm_execution:
+  backend: codex-cli
+  model: gpt-5.4
+  work_unit_strategy: requirement-step
+  edit_mode: direct-edit
+  execution_scope: code-and-test
+delivery:
+  target_outcome: dry-run
+tasks:
+  - id: implement
+    type: implement_changes
+  - id: validate
+    type: run_validation_gates

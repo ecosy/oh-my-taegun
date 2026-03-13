@@ -9,6 +9,8 @@ const mode = process.env.OMT_FAKE_CODEX_MODE ?? "changed";
 const targetFile = process.env.OMT_FAKE_CODEX_TARGET_FILE ?? "README.md";
 const targetContent = process.env.OMT_FAKE_CODEX_TARGET_CONTENT ?? "# implemented\n";
 const wrongContent = process.env.OMT_FAKE_CODEX_WRONG_CONTENT ?? "broken\n";
+const writes = parseWrites(process.env.OMT_FAKE_CODEX_WRITES);
+const wrongWrites = parseWrites(process.env.OMT_FAKE_CODEX_WRONG_WRITES);
 
 if (!outputPath) {
   console.error("missing -o output path");
@@ -26,10 +28,14 @@ let status = "changed";
 
 switch (mode) {
   case "changed":
-    changedFiles = [await writeTarget(repoRoot, targetFile, targetContent)];
+    changedFiles = writes.length > 0
+      ? await writeTargets(repoRoot, writes)
+      : [await writeTarget(repoRoot, targetFile, targetContent)];
     break;
   case "repair-on-second":
-    changedFiles = [await writeTarget(repoRoot, targetFile, state.attempt === 1 ? wrongContent : targetContent)];
+    changedFiles = state.attempt === 1
+      ? (wrongWrites.length > 0 ? await writeTargets(repoRoot, wrongWrites) : [await writeTarget(repoRoot, targetFile, wrongContent)])
+      : (writes.length > 0 ? await writeTargets(repoRoot, writes) : [await writeTarget(repoRoot, targetFile, targetContent)]);
     break;
   case "no-change":
     status = "no_change";
@@ -96,6 +102,33 @@ async function writeTarget(root, relativePath, content) {
   await mkdir(dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, content);
   return relativePath;
+}
+
+async function writeTargets(root, entries) {
+  const changedFiles = [];
+  for (const entry of entries) {
+    changedFiles.push(await writeTarget(root, entry.path, entry.content));
+  }
+  return changedFiles;
+}
+
+function parseWrites(raw) {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((entry) =>
+      entry
+      && typeof entry === "object"
+      && typeof entry.path === "string"
+      && typeof entry.content === "string");
+  } catch {
+    return [];
+  }
 }
 
 function emitEvent(attempt) {

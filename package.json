@@ -21,7 +21,9 @@
     "test:e2e": "vitest run tests/e2e",
     "test:recovery": "vitest run tests/recovery",
     "test:policy": "vitest run tests/policy",
-    "test:docs": "vitest run tests/docs"
+    "test:docs": "vitest run tests/docs",
+    "smoke:chat-dogfood:real": "tsx scripts/smoke-chat-dogfood-real.ts",
+    "smoke:chat-dogfood:pr": "tsx scripts/smoke-chat-dogfood-pr.ts"
   },
   "engines": {
     "node": ">=22"

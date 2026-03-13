@@ -35,6 +35,7 @@ export interface ImplementationLoopResult {
   lastAttempt?: {
     workUnitId: string;
     sessionId?: string;
+    model?: string;
     attempt: number;
   };
 }
@@ -171,6 +172,7 @@ async function executeWorkUnitWithRetries(
   lastAttempt?: {
     workUnitId: string;
     sessionId?: string;
+    model?: string;
     attempt: number;
   };
 }> {
@@ -267,6 +269,7 @@ async function executeWorkUnitWithRetries(
         lastAttempt: {
           workUnitId: unit.id,
           sessionId: result.sessionId,
+          model: process.env.OMT_CODEX_MODEL ?? unit.model,
           attempt,
         },
       };
@@ -306,6 +309,7 @@ async function executeWorkUnitWithRetries(
         lastAttempt: {
           workUnitId: unit.id,
           sessionId: result.sessionId,
+          model: process.env.OMT_CODEX_MODEL ?? unit.model,
           attempt,
         },
       };

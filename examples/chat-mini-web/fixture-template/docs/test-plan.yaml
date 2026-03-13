@@ -1,0 +1,19 @@
+test_plan:
+  - id: TP-CHAT-001
+    acceptance_ids: [AC-CHAT-001]
+    category: e2e
+    method: automated
+    stage: nightly
+    description: Verify client state logic accumulates streamed text and completes pending state.
+  - id: TP-CHAT-002
+    acceptance_ids: [AC-CHAT-002]
+    category: integration
+    method: automated
+    stage: nightly
+    description: Verify response.completed is mapped into a downstream done event.
+  - id: TP-CHAT-003
+    acceptance_ids: [AC-CHAT-003]
+    category: policy
+    method: automated
+    stage: nightly
+    description: Verify nested upstream error reasons reach the client explicitly.
