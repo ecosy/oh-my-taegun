@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { detectCapabilities } from "../intake/detect-capabilities.js";
+import type { CapabilityReport } from "../shared/types.js";
 import type { VerifiedCapabilityReport } from "./types.js";
 
 const INSPECT_ALLOWLIST = ["rg", "grep", "ls", "find", "wc", "cat", "head", "tail", "pwd", "printf"];
@@ -65,6 +66,23 @@ export async function inspectCapabilities(workspace: string): Promise<VerifiedCa
 
 export function inspectAllowlist(): string[] {
   return [...INSPECT_ALLOWLIST];
+}
+
+export function toCapabilityReport(report: VerifiedCapabilityReport): CapabilityReport {
+  return {
+    classification: report.classification,
+    languages: report.languages,
+    runtime: report.runtime,
+    packageManager: report.packageManager,
+    buildCommands: [...report.verified.buildCommands],
+    testCommands: [...report.verified.testCommands],
+    lintCommands: [...report.verified.lintCommands],
+    typecheckCommands: [...report.verified.typecheckCommands],
+    deploymentTargets: [...report.verified.deploymentTargets],
+    secretRequirements: [...report.verified.secretRequirements],
+    externalWriteSurfaces: [...report.verified.externalWriteSurfaces],
+    notes: [...report.notes],
+  };
 }
 
 function scriptNameFromCommand(command: string): string | undefined {

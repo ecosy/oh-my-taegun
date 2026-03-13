@@ -12,6 +12,7 @@ paths:
   event_log: ".omt/v2/events/<run-id>.jsonl"
   run_state: ".omt/v2/state/run.json"
   snapshots: ".omt/v2/snapshots/<run-id>/snapshot-*.json"
+  handoffs: ".omt/v2/handoffs/<run-id>/handoff.md"
   reports: ".omt/v2/reports/<run-id>.json"
 event_types:
   - doctor_survey_completed
