@@ -25,5 +25,8 @@ export async function loadDocuments(projectRoot: string, profilePath = "docs/spe
     taskContracts: await readYaml(resolve(projectRoot, source.task_contracts)),
     stateSchema: await readYaml(resolve(projectRoot, source.state_schema)),
     testMatrix: await readYaml(resolve(projectRoot, source.test_matrix)),
+    modelContracts: source.model_contracts ? await readYaml(resolve(projectRoot, source.model_contracts)) : undefined,
+    metrics: source.metrics ? await readYaml(resolve(projectRoot, source.metrics)) : undefined,
+    migration: source.migration ? await readFile(resolve(projectRoot, source.migration), "utf8") : undefined,
   };
 }

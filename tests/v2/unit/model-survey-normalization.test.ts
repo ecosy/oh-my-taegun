@@ -1,12 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { loadV2Yaml } from "../helpers/load-v2-doc.js";
+import { buildExecutionModelPolicy, normalizeModelSurvey } from "../../../src/v2/model-policy.js";
+import { loadV2Documents } from "../helpers/load-v2-doc.js";
 
 describe("v2 model survey normalization", () => {
-  it("defines the core model policy fields captured during design", async () => {
-    const contracts = await loadV2Yaml<Record<string, any>>("docs/v2/model-contracts.yaml");
-    const required = contracts.execution_model_policy.required_fields as string[];
-    expect(required).toContain("surveyed_models");
-    expect(required).toContain("approved_models");
-    expect(required).toContain("fallback_chain");
+  it("auto-approves a single surveyed model and clamps fallback to approved models", async () => {
+    const documents = await loadV2Documents();
+    const survey = normalizeModelSurvey({
+      surveyModels: "company-low",
+      fallbackChain: "company-low,company-high",
+    });
+    const policy = buildExecutionModelPolicy(documents, survey, {
+      executionModel: "company-low",
+      fallbackChain: "company-low,company-high",
+    });
+
+    expect(survey.approvedModels).toEqual(["company-low"]);
+    expect(policy.approvedModels).toEqual(["company-low"]);
+    expect(policy.fallbackChain.models).toEqual(["company-low"]);
+    expect(policy.openQuestions).toEqual([]);
+  });
+
+  it("leaves model selection open when multiple models are approved without defaults", async () => {
+    const documents = await loadV2Documents();
+    const survey = normalizeModelSurvey({
+      surveyModels: "company-low,company-high",
+      approvedModels: "company-low,company-high",
+    });
+    const policy = buildExecutionModelPolicy(documents, survey, {});
+
+    expect(policy.openQuestions).toContain("Default execution model must be selected when multiple approved models exist.");
   });
 });

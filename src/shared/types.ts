@@ -91,6 +91,9 @@ export interface DocumentSet {
   taskContracts: { task_contracts: TaskContract[] };
   stateSchema: Record<string, unknown>;
   testMatrix: Record<string, unknown>;
+  modelContracts?: Record<string, unknown>;
+  metrics?: Record<string, unknown>;
+  migration?: string;
 }
 
 export interface RepositoryInput {

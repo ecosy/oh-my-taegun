@@ -2,12 +2,14 @@
 import { cwd } from "node:process";
 import { CliError } from "../shared/errors.js";
 import { error } from "../shared/logger.js";
+import { runDoctorCommand } from "./commands/doctor.js";
 import { runDesignCommand } from "./commands/design.js";
+import { runInspectCommand } from "./commands/inspect.js";
 import { runRunCommand } from "./commands/run.js";
 import { runResumeCommand } from "./commands/resume.js";
 import { runReportCommand } from "./commands/report.js";
 
-type CommandName = "design" | "run" | "resume" | "report";
+type CommandName = "doctor" | "inspect" | "design" | "run" | "resume" | "report";
 
 async function main(): Promise<void> {
   const [commandName, ...rest] = process.argv.slice(2);
@@ -16,6 +18,12 @@ async function main(): Promise<void> {
   const projectRoot = args["project-root"] ?? cwd();
 
   switch (command) {
+    case "doctor":
+      await runDoctorCommand(projectRoot, args);
+      break;
+    case "inspect":
+      await runInspectCommand(projectRoot, args);
+      break;
     case "design":
       await runDesignCommand(projectRoot, args);
       break;
@@ -29,7 +37,7 @@ async function main(): Promise<void> {
       await runReportCommand(projectRoot, args);
       break;
     default:
-      throw new CliError("Usage: omt <design|run|resume|report> [--key value]");
+      throw new CliError("Usage: omt <doctor|inspect|design|run|resume|report> [--key value]");
   }
 }
 
