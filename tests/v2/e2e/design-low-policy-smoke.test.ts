@@ -1,10 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { loadV2Yaml } from "../helpers/load-v2-doc.js";
+import { createTempGitRepo } from "../../helpers/temp-repo.js";
+import { execV2Cli } from "../helpers/exec-v2-cli.js";
+import { loadModelFixture } from "../helpers/model-fixtures.js";
 
 describe("v2 e2e design low policy smoke", () => {
-  it("includes low-capability survey fixtures in the test matrix", async () => {
-    const matrix = await loadV2Yaml<Record<string, any>>("docs/v2/test-matrix.yaml");
-    const fixtureIds = (matrix.fixtures as Array<{ id: string }>).map((entry) => entry.id);
-    expect(fixtureIds).toContain("fixture-model-survey-company-low-only");
+  it("freezes a design package for the low-capability policy fixture", async () => {
+    const repo = await createTempGitRepo();
+    const fixture = await loadModelFixture("fixture-model-survey-company-low-only");
+    const payload = await execV2Cli([
+      "design",
+      "--profile",
+      "docs/v2/spec.yaml",
+      "--repo-path",
+      repo,
+      "--survey-models",
+      fixture.surveyModels,
+      "--approved-models",
+      fixture.approvedModels,
+      "--execution-model",
+      fixture.executionModel,
+      "--verifier-model",
+      fixture.verifierModel,
+    ]);
+
+    expect(payload.status).toBe("passed");
+    expect(payload.executionModelPolicy.workUnitBudgetProfile).toBe("low_capability");
+    expect(payload.designPackagePath).toContain(".omt/v2/design/seed.json");
   });
 });

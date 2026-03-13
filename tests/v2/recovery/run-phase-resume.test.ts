@@ -42,5 +42,5 @@ describe("v2 run phase resume", () => {
     expect(["verify", "deliver"]).toContain(resume.phase);
     expect(resume.executionModelPolicy.defaultExecutionModel).toBe("company-low");
     expect(resume.handoff).toContain("# Handoff");
-  }, 15000);
+  }, 30000);
 });

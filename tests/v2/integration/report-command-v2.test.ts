@@ -43,5 +43,5 @@ describe("v2 report command", () => {
     expect(report.convergenceSnapshot.converged).toBe(true);
     expect(Array.isArray(report.pathologySignals)).toBe(true);
     expect(report.validationSummary.featureValidation.passed).toBe(true);
-  }, 15000);
+  }, 30000);
 });

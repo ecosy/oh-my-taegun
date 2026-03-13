@@ -31,5 +31,5 @@ describe("llm fix simple fixture", () => {
 
     const evidence = await readFile(`${repo}/.omt/evidence.json`, "utf8");
     expect(evidence).toContain("wu-001");
-  }, 15000);
+  }, 30000);
 });

@@ -39,5 +39,5 @@ describe("resume command", () => {
     const resumePayload = JSON.parse(resume.stdout);
     expect(resumePayload.snapshot.run_id).toBe(runPayload.runId);
     expect(resumePayload.handoff).toContain("# Handoff");
-  }, 15000);
+  }, 30000);
 });

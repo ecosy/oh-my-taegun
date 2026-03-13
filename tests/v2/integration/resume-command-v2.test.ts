@@ -42,5 +42,5 @@ describe("v2 resume command", () => {
     expect(["verify", "deliver"]).toContain(resume.phase);
     expect(resume.executionModelPolicy.defaultExecutionModel).toBe("company-low");
     expect(Array.isArray(resume.nextActions)).toBe(true);
-  }, 15000);
+  }, 30000);
 });

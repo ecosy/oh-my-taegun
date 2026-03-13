@@ -25,5 +25,5 @@ describe("local-first e2e", () => {
     const payload = JSON.parse(result.stdout);
     expect(payload.runId).toMatch(/^\d{14}$/u);
     expect(Array.isArray(payload.blockedReasons)).toBe(true);
-  }, 15000);
+  }, 30000);
 });

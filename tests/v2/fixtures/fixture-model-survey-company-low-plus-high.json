@@ -1,0 +1,7 @@
+{
+  "surveyModels": "company-low,company-high",
+  "approvedModels": "company-low,company-high",
+  "executionModel": "company-high",
+  "verifierModel": "company-high",
+  "workUnitBudgetProfile": "high_capability"
+}
