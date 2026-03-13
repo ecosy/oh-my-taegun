@@ -18,6 +18,32 @@ export interface ImplementationLoopOptions {
   executor: WorkUnitExecutor;
 }
 
+export interface PlannedImplementationLoopOptions {
+  documents: DocumentSet;
+  repository: RepositoryContext;
+  runId: string;
+  executor: WorkUnitExecutor;
+  workUnits: ReturnType<typeof planRequirementSteps>["workUnits"];
+  completedRequirementIds?: string[];
+  blockedRequirementIds?: string[];
+  snapshotWriter?: (payload: {
+    runId: string;
+    iteration: number;
+    workspace: string;
+    acceptanceIds: string[];
+    failingTests: string[];
+    changedFiles: string[];
+    nextActions: string[];
+  }) => Promise<void>;
+  eventSink?: (event: {
+    type: string;
+    workUnitId: string;
+    attempt?: number;
+    changedFiles?: string[];
+    validationPassed?: boolean;
+  }) => Promise<void>;
+}
+
 export interface ImplementationLoopResult {
   status: "passed" | "blocked";
   blockedReason?: BlockedReason;
@@ -49,8 +75,22 @@ export async function executeImplementationLoop(
     capabilities: await importCapabilities(options),
   });
 
-  const completedRequirementIds = [...(options.runState.implementation?.completed_requirement_ids ?? [])];
-  const blockedRequirementIds = [...(options.runState.implementation?.blocked_requirement_ids ?? [])];
+  return executePlannedWorkUnits({
+    documents: options.documents,
+    repository: options.repository,
+    runId: options.runId,
+    executor: options.executor,
+    workUnits: plan.workUnits,
+    completedRequirementIds: options.runState.implementation?.completed_requirement_ids,
+    blockedRequirementIds: options.runState.implementation?.blocked_requirement_ids,
+  });
+}
+
+export async function executePlannedWorkUnits(
+  options: PlannedImplementationLoopOptions,
+): Promise<ImplementationLoopResult> {
+  const completedRequirementIds = [...(options.completedRequirementIds ?? [])];
+  const blockedRequirementIds = [...(options.blockedRequirementIds ?? [])];
   const artifacts = new Set<string>();
   const evidenceRefs = new Set<string>();
   const sessionIds = new Set<string>();
@@ -71,7 +111,7 @@ export async function executeImplementationLoop(
       },
       completedRequirementIds,
       blockedRequirementIds,
-      totalWorkUnits: plan.workUnits.length,
+      totalWorkUnits: options.workUnits.length,
       completedWorkUnits,
       changedFiles: [],
       artifacts: [],
@@ -82,7 +122,7 @@ export async function executeImplementationLoop(
     };
   }
 
-  for (const unit of plan.workUnits) {
+  for (const unit of options.workUnits) {
     if (unit.requirementIds.every((requirementId) => completedRequirementIds.includes(requirementId))) {
       completedWorkUnits += 1;
       continue;
@@ -95,6 +135,8 @@ export async function executeImplementationLoop(
         repository: options.repository,
         executor: options.executor,
         priorChangedFiles: [...priorChangedFiles],
+        snapshotWriter: options.snapshotWriter,
+        eventSink: options.eventSink,
       },
     );
 
@@ -115,7 +157,7 @@ export async function executeImplementationLoop(
         blockedReason: unitOutcome.blockedReason,
         completedRequirementIds,
         blockedRequirementIds,
-        totalWorkUnits: plan.workUnits.length,
+        totalWorkUnits: options.workUnits.length,
         completedWorkUnits,
         currentWorkUnitId: unit.id,
         changedFiles: [...changedFiles],
@@ -140,7 +182,7 @@ export async function executeImplementationLoop(
     status: "passed",
     completedRequirementIds,
     blockedRequirementIds,
-    totalWorkUnits: plan.workUnits.length,
+    totalWorkUnits: options.workUnits.length,
     completedWorkUnits,
     changedFiles: [...changedFiles],
     artifacts: [...artifacts],
@@ -159,6 +201,8 @@ async function executeWorkUnitWithRetries(
     repository: RepositoryContext;
     executor: WorkUnitExecutor;
     priorChangedFiles: string[];
+    snapshotWriter?: PlannedImplementationLoopOptions["snapshotWriter"];
+    eventSink?: PlannedImplementationLoopOptions["eventSink"];
   },
 ): Promise<{
   status: "passed" | "blocked";
@@ -184,19 +228,11 @@ async function executeWorkUnitWithRetries(
   let priorSummary: string | undefined;
 
   for (let attempt = 1; attempt <= unit.maxAttempts; attempt += 1) {
-    const branch = await currentBranch(options.repository.localWorkspace).catch(() => "main");
-    await writeSnapshot(options.repository.localWorkspace, {
-      run_id: unit.runId,
-      iteration: unit.iteration * 10 + attempt,
-      created_at: new Date().toISOString(),
-      branch,
-      workspace: options.repository.localWorkspace,
-      ac_status: Object.fromEntries(unit.acceptanceIds.map((acceptanceId) => [acceptanceId, "pending"])),
-      failing_tests: failureEvidence,
-      changed_files: options.priorChangedFiles,
-      blockers: [],
-      next_actions: [`Execute ${unit.id} attempt ${attempt}.`],
-      validation_summary: {},
+    await writeAttemptSnapshot(unit, attempt, options, failureEvidence);
+    await options.eventSink?.({
+      type: "work_unit_started",
+      workUnitId: unit.id,
+      attempt,
     });
 
     const context: WorkUnitContext = {
@@ -251,7 +287,7 @@ async function executeWorkUnitWithRetries(
       : await collectWorkingTreeFiles(options.repository.localWorkspace);
     changedFiles.forEach((file) => evidenceRefs.add(file));
 
-    if (changedFiles.length > 20) {
+    if (changedFiles.length > (unit.maxChangedFiles ?? 20)) {
       return {
         status: "blocked",
         blockedReason: {
@@ -281,6 +317,13 @@ async function executeWorkUnitWithRetries(
     await writeFile(validationArtifact, JSON.stringify({ attempt, validation }, null, 2));
     validationArtifacts.add(validationArtifact);
     artifacts.add(validationArtifact);
+    await options.eventSink?.({
+      type: "work_unit_completed",
+      workUnitId: unit.id,
+      attempt,
+      changedFiles,
+      validationPassed: validation.passed,
+    });
 
     await appendEvidence(options.repository.localWorkspace, {
       id: `${unit.id}-attempt-${attempt}`,
@@ -387,4 +430,43 @@ function validationArtifactPath(workspace: string, runId: string, workUnitId: st
 
 async function importCapabilities(options: Pick<ImplementationLoopOptions, "documents" | "repository">): Promise<ImplementationLoopOptions["documents"]["profile"] extends never ? never : import("../shared/types.js").CapabilityReport> {
   return (await import("../intake/detect-capabilities.js")).detectCapabilities(options.repository.localWorkspace);
+}
+
+async function writeAttemptSnapshot(
+  unit: ReturnType<typeof planRequirementSteps>["workUnits"][number],
+  attempt: number,
+  options: {
+    repository: RepositoryContext;
+    priorChangedFiles: string[];
+    snapshotWriter?: PlannedImplementationLoopOptions["snapshotWriter"];
+  },
+  failureEvidence: string[],
+): Promise<void> {
+  if (options.snapshotWriter) {
+    await options.snapshotWriter({
+      runId: unit.runId,
+      iteration: unit.iteration * 10 + attempt,
+      workspace: options.repository.localWorkspace,
+      acceptanceIds: unit.acceptanceIds,
+      failingTests: failureEvidence,
+      changedFiles: options.priorChangedFiles,
+      nextActions: [`Execute ${unit.id} attempt ${attempt}.`],
+    });
+    return;
+  }
+
+  const branch = await currentBranch(options.repository.localWorkspace).catch(() => "main");
+  await writeSnapshot(options.repository.localWorkspace, {
+    run_id: unit.runId,
+    iteration: unit.iteration * 10 + attempt,
+    created_at: new Date().toISOString(),
+    branch,
+    workspace: options.repository.localWorkspace,
+    ac_status: Object.fromEntries(unit.acceptanceIds.map((acceptanceId) => [acceptanceId, "pending"])),
+    failing_tests: failureEvidence,
+    changed_files: options.priorChangedFiles,
+    blockers: [],
+    next_actions: [`Execute ${unit.id} attempt ${attempt}.`],
+    validation_summary: {},
+  });
 }

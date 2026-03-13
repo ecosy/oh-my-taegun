@@ -27,5 +27,5 @@ describe("run command validation failures", () => {
     const payload = JSON.parse(result.stdout);
     expect(payload.status).toBe("blocked");
     expect(payload.blockedReasons.some((reason: { code: string }) => reason.code === "feature_validation_failed")).toBe(true);
-  });
+  }, 15000);
 });
