@@ -64,7 +64,7 @@ export interface LlmRuntimeSettings {
 export function resolveLlmRuntimeSettings(profile?: LlmExecutionProfile): LlmRuntimeSettings {
   return {
     backend: "codex-cli",
-    model: profile?.model ?? "gpt-5.2-codex-xhigh",
+    model: profile?.model ?? "gpt-5.4",
     workUnitStrategy: "requirement-step",
     editMode: "direct-edit",
     executionScope: "code-and-test",

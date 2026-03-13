@@ -19,7 +19,7 @@ describe("prompt builder", () => {
       constraints: ["Only modify one file."],
       editMode: "direct-edit",
       executionScope: "code-and-test",
-      model: "gpt-5.2-codex-xhigh",
+      model: "gpt-5.4",
       maxAttempts: 3,
     }, {
       capabilities: {

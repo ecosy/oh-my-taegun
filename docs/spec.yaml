@@ -25,9 +25,9 @@ inputs:
     mode: solo
   model:
     preferred_tiers:
+      - gpt-5.4
       - gpt-5.2-codex-medium
-      - gpt-5.2-codex-xhigh
-    host_environment: company-computer
+    host_environment: personal-computer
 
 planning:
   question_policy:
@@ -121,7 +121,7 @@ validation:
 
 llm_execution:
   backend: codex-cli
-  model: gpt-5.2-codex-xhigh
+  model: gpt-5.4
   work_unit_strategy: requirement-step
   edit_mode: direct-edit
   execution_scope: code-and-test

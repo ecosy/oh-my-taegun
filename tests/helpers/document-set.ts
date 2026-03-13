@@ -11,7 +11,7 @@ export function createDocumentSet(overrides?: Partial<DocumentSet>): DocumentSet
       source_documents: {},
       llm_execution: {
         backend: "codex-cli",
-        model: "gpt-5.2-codex-xhigh",
+        model: "gpt-5.4",
         work_unit_strategy: "requirement-step",
         edit_mode: "direct-edit",
         execution_scope: "code-and-test",

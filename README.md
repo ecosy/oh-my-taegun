@@ -51,8 +51,11 @@
 npm install
 npm run check
 npm test
+OMT_CODEX_MODEL=gpt-5.4 npm run run -- --repo-path .
 npm run design -- --repo-path .
 ```
+
+`OMT`가 실제 구현 작업에 사용할 모델은 `OMT_CODEX_MODEL`로 우선 지정된다. 기본 운영 기준은 `gpt-5.4`이고, 웹 예제 앱 런타임 모델은 별도로 `gpt-5-mini`를 사용한다.
 
 ## GitHub PR 전제 조건
 
