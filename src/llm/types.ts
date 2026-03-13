@@ -16,6 +16,8 @@ export interface WorkUnit {
   executionScope: "code-and-test";
   model: string;
   maxAttempts: number;
+  maxChangedFiles?: number;
+  budgetProfile?: string;
 }
 
 export interface WorkUnitContext {
@@ -44,6 +46,7 @@ export interface WorkUnitExecutor {
 export interface RequirementStepPlan {
   workUnits: WorkUnit[];
   selectedRequirementIds: string[];
+  blockedReasons?: string[];
 }
 
 export interface LlmRuntimeSettings {

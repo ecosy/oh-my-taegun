@@ -1,12 +1,97 @@
 import { describe, expect, it } from "vitest";
-import { loadV2Yaml } from "../helpers/load-v2-doc.js";
+import { planRequirementSteps } from "../../../src/planning/requirement-step-planner.js";
+import { createDocumentSet } from "../../helpers/document-set.js";
 
 describe("v2 work unit budget", () => {
-  it("defines stricter low-capability budgets than high-capability budgets", async () => {
-    const contracts = await loadV2Yaml<Record<string, any>>("docs/v2/model-contracts.yaml");
-    const low = contracts.budget_profiles.low_capability;
-    const high = contracts.budget_profiles.high_capability;
-    expect(low.max_requirement_ids).toBeLessThanOrEqual(high.max_requirement_ids);
-    expect(low.max_changed_files).toBeLessThan(high.max_changed_files);
+  it("splits grouped requirements to fit the selected budget profile", () => {
+    const documents = createDocumentSet({
+      requirements: {
+        requirements: [
+          {
+            id: "REQ-001",
+            priority: "MUST",
+            title: "One",
+            description: "One",
+            source_refs: ["src-1"],
+          },
+          {
+            id: "REQ-002",
+            priority: "MUST",
+            title: "Two",
+            description: "Two",
+            source_refs: ["src-2"],
+          },
+        ],
+      },
+      acceptance: {
+        acceptance_criteria: [
+          {
+            id: "AC-001",
+            requirement_ids: ["REQ-001", "REQ-002"],
+            title: "Shared acceptance",
+            description: "Shared acceptance",
+            verification: {},
+          },
+        ],
+      },
+      testPlan: {
+        test_plan: [
+          {
+            id: "TP-001",
+            acceptance_ids: ["AC-001"],
+            category: "unit",
+            method: "automated",
+            stage: "nightly",
+            description: "Shared plan",
+          },
+        ],
+      },
+    });
+    const capabilities = {
+      classification: "supported" as const,
+      languages: ["TypeScript/JavaScript"],
+      runtime: "Node.js",
+      packageManager: "npm",
+      buildCommands: ["npm run build"],
+      testCommands: ["npm run test"],
+      lintCommands: [],
+      typecheckCommands: ["npm run check"],
+      deploymentTargets: [],
+      secretRequirements: [],
+      externalWriteSurfaces: [],
+      notes: [],
+    };
+
+    const low = planRequirementSteps(documents, {
+      runId: "run-1",
+      repoRoot: "/tmp/repo",
+      capabilities,
+      budget: {
+        profile: "low_capability",
+        maxRequirementIds: 1,
+        maxAcceptanceIds: 2,
+        maxValidationCommands: 2,
+        maxAttempts: 3,
+        maxChangedFiles: 4,
+      },
+    });
+    const high = planRequirementSteps(documents, {
+      runId: "run-1",
+      repoRoot: "/tmp/repo",
+      capabilities,
+      budget: {
+        profile: "high_capability",
+        maxRequirementIds: 2,
+        maxAcceptanceIds: 3,
+        maxValidationCommands: 3,
+        maxAttempts: 3,
+        maxChangedFiles: 8,
+      },
+    });
+
+    expect(low.workUnits).toHaveLength(2);
+    expect(low.workUnits.every((unit) => unit.requirementIds.length === 1)).toBe(true);
+    expect(high.workUnits).toHaveLength(1);
+    expect(high.workUnits[0]?.requirementIds).toEqual(["REQ-001", "REQ-002"]);
   });
 });

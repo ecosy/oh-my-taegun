@@ -1,11 +1,25 @@
+import { access } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { loadV2Yaml } from "../helpers/load-v2-doc.js";
+import { createTempGitRepo } from "../../helpers/temp-repo.js";
+import { execV2Cli } from "../helpers/exec-v2-cli.js";
 
 describe("v2 design gate", () => {
-  it("defines model policy capture and ambiguity gate acceptance criteria", async () => {
-    const acceptance = await loadV2Yaml<Record<string, any>>("docs/v2/acceptance.yaml");
-    const titles = (acceptance.acceptance_criteria as Array<{ title: string }>).map((entry) => entry.title);
-    expect(titles).toContain("Model policy capture during design");
-    expect(titles).toContain("Ambiguity gate");
+  it("blocks seed freeze when model policy is incomplete", async () => {
+    const repo = await createTempGitRepo();
+    const payload = await execV2Cli([
+      "design",
+      "--profile",
+      "docs/v2/spec.yaml",
+      "--repo-path",
+      repo,
+      "--survey-models",
+      "company-low,company-high",
+      "--approved-models",
+      "company-low,company-high",
+    ]);
+
+    expect(payload.status).toBe("blocked");
+    expect(payload.blockedReasons[0].code).toBe("model_policy_unconfirmed");
+    await expect(access(`${repo}/.omt/v2/design/seed.json`)).rejects.toThrow();
   });
 });
