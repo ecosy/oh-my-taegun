@@ -10,6 +10,7 @@ import { executeCommands } from "../validation/execute-commands.js";
 import { appendEvent } from "./event-store.js";
 import { v2SeedPath } from "./files.js";
 import { buildConvergenceSnapshot } from "./ontology.js";
+import { detectPathologySignals } from "./pathology.js";
 import { writeV2Report } from "./report.js";
 import { writeV2Handoff } from "./recovery.js";
 import { writeV2Snapshot } from "./snapshot-store.js";
@@ -113,6 +114,7 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       })),
     };
   } else {
+    const attemptTelemetry: Array<{ summary: string; hasNewEvidence: boolean }> = [];
     const loopResult = await executePlannedWorkUnits({
       documents,
       repository,
@@ -139,6 +141,12 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
         });
       },
       eventSink: async (event) => {
+        if (event.type === "work_unit_completed" && event.summary) {
+          attemptTelemetry.push({
+            summary: event.summary,
+            hasNewEvidence: event.hasNewEvidence ?? false,
+          });
+        }
         await appendEvent(repository.localWorkspace, runId, {
           phase: "execute",
           type: event.type,
@@ -222,6 +230,7 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       }
     }
 
+    const pathologySignals = detectPathologySignals(attemptTelemetry);
     const deliveryAssessment = assessDeliveryReadiness({
       featureValidationPassed: featureValidation.passed,
       regressionValidationPassed: regressionValidation.passed,
@@ -237,6 +246,7 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       phase: blockedReasons.length > 0 ? "verify" : "deliver",
       updatedAt: new Date().toISOString(),
       convergenceSnapshot,
+      pathologySignals,
       blockedReasons,
       verifierDecisions,
       validationSummary: {

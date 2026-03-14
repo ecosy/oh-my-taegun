@@ -41,6 +41,8 @@ export interface PlannedImplementationLoopOptions {
     attempt?: number;
     changedFiles?: string[];
     validationPassed?: boolean;
+    summary?: string;
+    hasNewEvidence?: boolean;
   }) => Promise<void>;
 }
 
@@ -323,6 +325,8 @@ async function executeWorkUnitWithRetries(
       attempt,
       changedFiles,
       validationPassed: validation.passed,
+      summary: result.summary,
+      hasNewEvidence: result.status !== "no_change" && changedFiles.length > 0,
     });
 
     await appendEvidence(options.repository.localWorkspace, {

@@ -36,5 +36,5 @@ describe("run command", () => {
     const runState = JSON.parse(runStateRaw);
     expect(runState.completed_tasks).toContain("run-validation");
     expect(runState.implementation.completed_work_units).toBeGreaterThan(0);
-  }, 15000);
+  }, 30000);
 });

@@ -23,4 +23,5 @@ pathology:
   stagnation_window: 3
   oscillation_period: 2
   repetitive_feedback_overlap: 0.70
+  retry_without_new_evidence_window: 2
   hard_cap_generations: 30
