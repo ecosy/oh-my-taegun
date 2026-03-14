@@ -2,6 +2,14 @@
 
 `oh-my-taegun`은 "낮 설계 -> 밤 자동 구현 -> 아침 검토"를 목표로 하는 로컬 우선 자율 개발 하네스입니다.
 
+## Start Here
+
+V2를 실제로 실행하려면 먼저 [AGENTS.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/AGENTS.md)와 [docs/v2/operator-guide.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/operator-guide.md)를 읽는다. 개념과 계약은 [docs/v2/spec.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/spec.md)에서 확인한다.
+
+- 기본 명령 경로는 V1이다.
+- V2는 explicit profile로만 활성화된다.
+- V2 상태는 `.omt/v2/` 아래에 저장된다.
+
 현재 단계의 핵심 원칙은 다음과 같습니다.
 
 - 1차 사용자는 단일 운영자 1명
@@ -45,7 +53,7 @@
 4. 공개 가능한 시점에만 공개용 브랜치 또는 정리 커밋을 만든다.
 5. 그 다음에만 GitHub 원격 저장소로 선별 push 한다.
 
-## 빠른 시작
+## Quick Start (V1)
 
 ```bash
 npm install
@@ -56,6 +64,15 @@ npm run design -- --repo-path .
 ```
 
 `OMT`가 실제 구현 작업에 사용할 모델은 `OMT_CODEX_MODEL`로 우선 지정된다. 기본 운영 기준은 `gpt-5.4`이고, 웹 예제 앱 런타임 모델은 별도로 `gpt-5-mini`를 사용한다.
+
+## Quick Start (V2)
+
+```bash
+npm run doctor -- --repo-path /absolute/path/to/target-repo --survey-models gpt-5.2-codex --approved-models gpt-5.2-codex --execution-model gpt-5.2-codex --verifier-model gpt-5.2-codex
+npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models gpt-5.2-codex --approved-models gpt-5.2-codex --execution-model gpt-5.2-codex --verifier-model gpt-5.2-codex
+npm run run:v2 -- --repo-path /absolute/path/to/target-repo
+npm run report:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
+```
 
 ## GitHub PR 전제 조건
 

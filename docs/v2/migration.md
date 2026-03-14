@@ -16,3 +16,5 @@
 - V2 runtime is activated with `--profile docs/v2/spec.yaml`.
 - `doctor` and `inspect` are public V2 commands, while `design`, `run`, `resume`, and `report` keep V1 defaults unless a V2 profile is passed.
 - V2 state lives under `.omt/v2/` and does not replace the existing `.omt/` V1 runtime artifacts.
+- Agent/operator entrypoint is `AGENTS.md` and `docs/v2/operator-guide.md`.
+- When checking V2 runtime state, read `.omt/v2/design/seed.json` first, then `.omt/v2/events/<run-id>.jsonl`, then `.omt/v2/reports/<run-id>.json`.

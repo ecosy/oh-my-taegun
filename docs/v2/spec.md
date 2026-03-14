@@ -1,5 +1,7 @@
 # OMT V2 Spec Narrative
 
+For actual operation, read `docs/v2/operator-guide.md` first. This document is the concept and contract narrative, not the step-by-step operator procedure.
+
 ## Core Flow
 
 `doctor -> model survey -> interview -> ontology -> seed -> freeze -> plan -> execute -> verify -> converge -> deliver -> report`
