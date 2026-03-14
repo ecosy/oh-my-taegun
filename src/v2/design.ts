@@ -6,7 +6,7 @@ import { v2DesignInterviewPath, v2DesignModelSurveyPath, v2OntologyPath, v2SeedP
 import { calculateAmbiguityScore } from "./metrics.js";
 import { buildExecutionModelPolicy, buildModelPolicyQuestionRecords, type ModelPolicyInput } from "./model-policy.js";
 import type { BlockedReason } from "../shared/types.js";
-import type { DesignPackage, DoctorResult } from "./types.js";
+import type { DesignPackage, DoctorResult, QuestionRecord } from "./types.js";
 
 export interface V2DesignResult {
   repository: RepositoryContext;
@@ -26,21 +26,18 @@ export async function runV2Design(
   input: ModelPolicyInput,
 ): Promise<V2DesignResult> {
   const policy = buildExecutionModelPolicy(documents, doctor.modelEnvironmentSurvey, input);
-  const questionRecords = buildModelPolicyQuestionRecords(doctor.modelEnvironmentSurvey, policy);
+  const questionRecords = [
+    ...buildDesignQuestionRecords(documents, doctor),
+    ...buildModelPolicyQuestionRecords(doctor.modelEnvironmentSurvey, policy, input),
+  ];
   const ambiguityScorecard = calculateAmbiguityScore({
-    openQuestions: questionRecords.filter((record) => !record.answer).map((record) => record.question),
-    requiredSlots: {
-      goal: documents.requirements.requirements.length > 0,
-      constraints: doctor.verifiedCapabilityReport.classification !== "blocked",
-      successCriteria: documents.acceptance.acceptance_criteria.length > 0,
-    },
-    policy,
-    verifiedCapabilityReport: doctor.verifiedCapabilityReport,
+    questions: questionRecords,
     threshold: readAmbiguityThreshold(documents),
+    weights: readAmbiguityWeights(documents),
   });
   const ontologySeed = buildOntologySeed(documents, policy);
 
-  const blockedReasons = collectBlockedReasons(policy.openQuestions, ambiguityScorecard);
+  const blockedReasons = collectBlockedReasons(ambiguityScorecard);
 
   await writeJson(v2DesignModelSurveyPath(doctor.repository.localWorkspace), doctor.modelEnvironmentSurvey);
   await appendInterviewRecords(v2DesignInterviewPath(doctor.repository.localWorkspace), questionRecords);
@@ -83,14 +80,26 @@ function readAmbiguityThreshold(documents: DocumentSet): number {
   return typeof threshold === "number" ? threshold : 0.2;
 }
 
-function collectBlockedReasons(openQuestions: string[], ambiguityScorecard: V2DesignResult["ambiguityScorecard"]): BlockedReason[] {
+function readAmbiguityWeights(documents: DocumentSet): Record<string, number> {
+  const metrics = (documents.metrics ?? {}) as Record<string, any>;
+  const weights = metrics.ambiguity?.weights;
+  return typeof weights === "object" && weights ? weights as Record<string, number> : {
+    goal_clarity: 0.35,
+    constraint_clarity: 0.25,
+    success_criteria: 0.2,
+    capability_clarity: 0.1,
+    model_policy_clarity: 0.1,
+  };
+}
+
+function collectBlockedReasons(ambiguityScorecard: V2DesignResult["ambiguityScorecard"]): BlockedReason[] {
   const reasons: BlockedReason[] = [];
-  if (openQuestions.length > 0) {
+  if ((ambiguityScorecard.blockingQuestions?.length ?? 0) > 0) {
     reasons.push({
       code: "model_policy_unconfirmed",
-      message: openQuestions[0] ?? "Execution model policy is incomplete.",
+      message: ambiguityScorecard.blockingQuestions?.[0] ?? "Execution model policy is incomplete.",
       requiredAction: "Complete model policy inputs before seed freeze.",
-      evidence: openQuestions,
+      evidence: ambiguityScorecard.blockingQuestions,
     });
   }
   if (!ambiguityScorecard.passed) {
@@ -102,6 +111,53 @@ function collectBlockedReasons(openQuestions: string[], ambiguityScorecard: V2De
     });
   }
   return reasons;
+}
+
+function buildDesignQuestionRecords(documents: DocumentSet, doctor: DoctorResult): QuestionRecord[] {
+  return [
+    {
+      id: "design-goal",
+      question: "Is there at least one concrete requirement defining the goal?",
+      answer: documents.requirements.requirements.length > 0 ? `${documents.requirements.requirements.length} requirements loaded` : undefined,
+      required: true,
+      source: "system",
+      slot: "goal_clarity",
+      status: documents.requirements.requirements.length > 0 ? "answered" : "unanswered",
+      blocking: documents.requirements.requirements.length === 0,
+    },
+    {
+      id: "design-constraints",
+      question: "Are runtime and repository constraints known enough to plan work safely?",
+      answer: doctor.verifiedCapabilityReport.classification,
+      required: true,
+      source: "doctor",
+      slot: "constraint_clarity",
+      status: doctor.verifiedCapabilityReport.classification === "blocked" ? "unanswered" : "verified",
+      blocking: doctor.verifiedCapabilityReport.classification === "blocked",
+    },
+    {
+      id: "design-success-criteria",
+      question: "Are acceptance criteria loaded for this design package?",
+      answer: documents.acceptance.acceptance_criteria.length > 0
+        ? `${documents.acceptance.acceptance_criteria.length} acceptance criteria loaded`
+        : undefined,
+      required: true,
+      source: "system",
+      slot: "success_criteria",
+      status: documents.acceptance.acceptance_criteria.length > 0 ? "answered" : "unanswered",
+      blocking: documents.acceptance.acceptance_criteria.length === 0,
+    },
+    {
+      id: "design-capability",
+      question: "Is there verified capability evidence for test execution?",
+      answer: doctor.verifiedCapabilityReport.verified.testCommands.join(", "),
+      required: true,
+      source: "doctor",
+      slot: "capability_clarity",
+      status: doctor.verifiedCapabilityReport.verified.testCommands.length > 0 ? "verified" : "assumed",
+      blocking: false,
+    },
+  ];
 }
 
 async function writeJson(path: string, payload: unknown): Promise<void> {

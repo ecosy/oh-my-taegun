@@ -57,7 +57,10 @@ export interface AmbiguityScorecard {
   threshold: number;
   score: number;
   slots: Record<string, number>;
+  slotStatus?: Record<string, QuestionRecord["status"]>;
   openQuestions: string[];
+  assumptionsUsed?: string[];
+  blockingQuestions?: string[];
   passed: boolean;
 }
 

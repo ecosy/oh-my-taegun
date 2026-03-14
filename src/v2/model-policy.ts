@@ -77,7 +77,13 @@ export function buildExecutionModelPolicy(
 export function buildModelPolicyQuestionRecords(
   survey: ModelEnvironmentSurvey,
   policy: ExecutionModelPolicy,
+  input?: ModelPolicyInput,
 ): QuestionRecord[] {
+  const approvedExplicit = parseList(input?.approvedModels).length > 0;
+  const designExplicit = Boolean(input?.designModel);
+  const executionExplicit = Boolean(input?.executionModel);
+  const verifierExplicit = Boolean(input?.verifierModel);
+
   return [
     {
       id: "model-survey",
@@ -85,6 +91,9 @@ export function buildModelPolicyQuestionRecords(
       answer: survey.surveyedModels.join(", "),
       required: true,
       source: "doctor",
+      slot: "model_policy_clarity",
+      status: survey.surveyedModels.length > 0 ? "verified" : "unanswered",
+      blocking: survey.surveyedModels.length === 0,
     },
     {
       id: "model-approved",
@@ -92,6 +101,9 @@ export function buildModelPolicyQuestionRecords(
       answer: survey.approvedModels.join(", "),
       required: true,
       source: "operator",
+      slot: "model_policy_clarity",
+      status: survey.approvedModels.length === 0 ? "unanswered" : approvedExplicit ? "answered" : "assumed",
+      blocking: survey.approvedModels.length === 0,
     },
     {
       id: "model-default-execution",
@@ -99,6 +111,9 @@ export function buildModelPolicyQuestionRecords(
       answer: policy.defaultExecutionModel,
       required: true,
       source: "operator",
+      slot: "model_policy_clarity",
+      status: !policy.defaultExecutionModel ? "unanswered" : executionExplicit ? "answered" : "assumed",
+      blocking: !policy.defaultExecutionModel,
     },
     {
       id: "model-default-verifier",
@@ -106,6 +121,19 @@ export function buildModelPolicyQuestionRecords(
       answer: policy.defaultVerifierModel,
       required: true,
       source: "operator",
+      slot: "model_policy_clarity",
+      status: !policy.defaultVerifierModel ? "unanswered" : verifierExplicit ? "answered" : "assumed",
+      blocking: !policy.defaultVerifierModel,
+    },
+    {
+      id: "model-default-design",
+      question: "Which design model should be used for this run?",
+      answer: policy.defaultDesignModel,
+      required: true,
+      source: "operator",
+      slot: "model_policy_clarity",
+      status: !policy.defaultDesignModel ? "unanswered" : designExplicit ? "answered" : "assumed",
+      blocking: !policy.defaultDesignModel,
     },
   ];
 }

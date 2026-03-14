@@ -2,6 +2,11 @@ version: 2
 product_id: oh-my-taegun
 ambiguity:
   threshold: 0.20
+  status_scoring:
+    unanswered: 0.00
+    assumed: 0.60
+    answered: 0.85
+    verified: 1.00
   weights:
     goal_clarity: 0.35
     constraint_clarity: 0.25
