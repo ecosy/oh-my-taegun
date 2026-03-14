@@ -74,6 +74,8 @@ npm run run:v2 -- --repo-path /absolute/path/to/target-repo
 npm run report:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
 ```
 
+실제 회사 모델 연결 smoke가 필요하면 [docs/v2/operator-guide.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/operator-guide.md)의 `Optional Real Model Smoke`를 따른다.
+
 ## GitHub PR 전제 조건
 
 - `real-pr` 모드는 GitHub 원격과 `GITHUB_TOKEN` 또는 `GH_TOKEN`이 있어야 한다.

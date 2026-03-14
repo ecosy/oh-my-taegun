@@ -34,6 +34,7 @@
     "test:recovery:v2": "vitest run --testTimeout 30000 tests/v2/recovery",
     "test:policy:v2": "vitest run tests/v2/policy",
     "test:e2e:v2": "vitest run --testTimeout 30000 tests/v2/e2e",
+    "test:e2e:v2:real-smoke": "vitest run --testTimeout 30000 tests/v2/e2e/real-model-smoke.test.ts",
     "test:model-parity:v2": "vitest run --testTimeout 45000 tests/v2/model-parity",
     "smoke:chat-dogfood:real": "tsx scripts/smoke-chat-dogfood-real.ts",
     "smoke:chat-dogfood:pr": "tsx scripts/smoke-chat-dogfood-pr.ts"

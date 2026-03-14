@@ -106,6 +106,21 @@ npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models g
 - `report`에 `executionModelPolicy`가 있다.
 - `report`에 `validationSummary`가 있다.
 
+## Optional Real Model Smoke
+
+deterministic fake-Codex suite가 기본 acceptance다. 실제 회사 모델로 연동 상태를 확인하고 싶을 때만 guarded smoke를 사용한다.
+
+```bash
+OMT_ENABLE_REAL_MODEL_SMOKE=1 OMT_REAL_MODEL_NAME=gpt-5.2-codex npm run test:e2e:v2:real-smoke
+```
+
+기대 결과는 아래 둘 중 하나다.
+
+- `completed`
+- `blocked`
+
+`blocked`도 허용된다. real-model smoke의 목적은 실제 모델 연결과 V2 경로가 망가지지 않았는지 확인하는 것이지, 모든 저장소에서 delivery-ready 결과를 강제하는 것이 아니다.
+
 ## Reference Specs
 
 - [spec.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/spec.md)
