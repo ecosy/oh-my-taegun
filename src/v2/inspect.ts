@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { detectCapabilities } from "../intake/detect-capabilities.js";
 import type { CapabilityReport } from "../shared/types.js";
@@ -13,6 +13,7 @@ export async function inspectCapabilities(workspace: string): Promise<VerifiedCa
   const scripts = typeof packageJson?.scripts === "object" && packageJson.scripts
     ? (packageJson.scripts as Record<string, unknown>)
     : {};
+  const repoEvidence = await collectRepoEvidence(workspace);
 
   const verifiedTestCommands = capabilities.testCommands.filter((command) => {
     const scriptName = scriptNameFromCommand(command);
@@ -44,6 +45,12 @@ export async function inspectCapabilities(workspace: string): Promise<VerifiedCa
       deploymentTargets: [...capabilities.deploymentTargets],
       secretRequirements: [...capabilities.secretRequirements],
       externalWriteSurfaces: [],
+      reasons: withFallback(compact([
+        verifiedBuildCommands.length > 0 ? "Build commands are backed by package.json scripts." : undefined,
+        verifiedTestCommands.length > 0 ? "Test commands are backed by package.json scripts." : undefined,
+        verifiedLintCommands.length > 0 ? "Lint commands are backed by package.json scripts." : undefined,
+        verifiedTypecheckCommands.length > 0 ? "Typecheck commands are backed by package.json scripts." : undefined,
+      ]), "No verified capability evidence was recorded for command-backed checks."),
     },
     unverified: {
       buildCommands: capabilities.buildCommands.filter((command) => !verifiedBuildCommands.includes(command)),
@@ -53,12 +60,25 @@ export async function inspectCapabilities(workspace: string): Promise<VerifiedCa
       deploymentTargets: [],
       secretRequirements: [],
       externalWriteSurfaces: [...capabilities.externalWriteSurfaces],
+      reasons: withFallback(compact([
+        capabilities.buildCommands.some((command) => !verifiedBuildCommands.includes(command))
+          ? "Some build commands were inferred but do not map to package.json scripts." : undefined,
+        capabilities.testCommands.some((command) => !verifiedTestCommands.includes(command))
+          ? "Some test commands were inferred but do not map to package.json scripts." : undefined,
+        capabilities.lintCommands.some((command) => !verifiedLintCommands.includes(command))
+          ? "Some lint commands were inferred but do not map to package.json scripts." : undefined,
+        capabilities.typecheckCommands.some((command) => !verifiedTypecheckCommands.includes(command))
+          ? "Some typecheck commands were inferred but do not map to package.json scripts." : undefined,
+        capabilities.externalWriteSurfaces.length > 0
+          ? "External write surfaces were detected but not verified for autonomous execution." : undefined,
+      ]), "No unverified command evidence was detected."),
     },
     notes: [...capabilities.notes],
     evidenceRefs: compact([
       "pwd",
       packageJson ? "package.json" : undefined,
       capabilities.secretRequirements[0],
+      ...repoEvidence,
     ]),
     allowlistUsed: [...INSPECT_ALLOWLIST],
   };
@@ -98,6 +118,46 @@ async function readJson(path: string): Promise<Record<string, unknown> | null> {
   }
 }
 
+async function collectRepoEvidence(workspace: string): Promise<string[]> {
+  const evidence: string[] = [];
+  const files = [
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    ".gitlab-ci.yml",
+    "circle.yml",
+    ".env.example",
+    ".env.template",
+    ".env.sample",
+    "tsconfig.json",
+    "jsconfig.json",
+    "vitest.config.ts",
+    "vitest.config.js",
+    "jest.config.js",
+    "jest.config.ts",
+  ];
+
+  for (const file of files) {
+    if (await exists(join(workspace, file))) {
+      evidence.push(file);
+    }
+  }
+
+  if (await exists(join(workspace, ".github", "workflows"))) {
+    evidence.push(".github/workflows");
+  }
+
+  return evidence;
+}
+
+async function exists(path: string): Promise<boolean> {
+  return stat(path).then(() => true).catch(() => false);
+}
+
 function compact(values: Array<string | undefined>): string[] {
   return values.filter((value): value is string => Boolean(value));
+}
+
+function withFallback(values: string[], fallback: string): string[] {
+  return values.length > 0 ? values : [fallback];
 }

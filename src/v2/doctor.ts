@@ -1,4 +1,7 @@
+import { access } from "node:fs/promises";
 import { execFile } from "node:child_process";
+import { constants } from "node:fs";
+import { join } from "node:path";
 import { promisify } from "node:util";
 import { currentBranch } from "../delivery/git-client.js";
 import { resolveRepository } from "../intake/resolve-repo.js";
@@ -38,11 +41,32 @@ export async function runDoctor(options: DoctorOptions): Promise<DoctorResult> {
         : "Working tree has uncommitted changes.",
     },
     {
+      code: "default_branch_detected",
+      passed: Boolean(repository.defaultBranch),
+      message: repository.defaultBranch
+        ? `Default branch resolved to ${repository.defaultBranch}.`
+        : "Default branch could not be resolved.",
+    },
+    {
+      code: "lockfile_detected",
+      passed: await hasLockfile(repository.localWorkspace),
+      message: await hasLockfile(repository.localWorkspace)
+        ? "At least one package-manager lockfile is present."
+        : "No package-manager lockfile was detected.",
+    },
+    {
       code: "verified_test_commands",
       passed: verifiedCapabilityReport.verified.testCommands.length > 0,
       message: verifiedCapabilityReport.verified.testCommands.length > 0
         ? "Verified test commands are available."
         : "No verified test command was detected.",
+    },
+    {
+      code: "workspace_writable",
+      passed: await isWorkspaceWritable(repository.localWorkspace),
+      message: await isWorkspaceWritable(repository.localWorkspace)
+        ? "Workspace directory is writable."
+        : "Workspace directory is not writable.",
     },
   ];
   const credentialGaps = collectCredentialGaps(verifiedCapabilityReport, modelEnvironmentSurvey);
@@ -102,4 +126,26 @@ function collectCredentialGaps(result: DoctorResult["verifiedCapabilityReport"],
     });
   }
   return gaps;
+}
+
+async function hasLockfile(workspace: string): Promise<boolean> {
+  const candidates = ["package-lock.json", "pnpm-lock.yaml", "yarn.lock"];
+  for (const candidate of candidates) {
+    try {
+      await access(join(workspace, candidate), constants.F_OK);
+      return true;
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
+async function isWorkspaceWritable(workspace: string): Promise<boolean> {
+  try {
+    await access(workspace, constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }

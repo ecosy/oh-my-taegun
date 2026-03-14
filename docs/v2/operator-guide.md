@@ -60,7 +60,7 @@ npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models g
 ## How To Read Outputs
 
 - `doctor`
-  - `modelEnvironmentSurvey`, `gitRuntimeContext`, `credentialGaps`, `verifiedCapabilityReport`를 본다.
+  - `modelEnvironmentSurvey`, `gitRuntimeContext`, `preflightChecks`, `credentialGaps`, `verifiedCapabilityReport`를 본다.
 - `design`
   - `executionModelPolicy`, `ambiguityScorecard`, `ontologySeed`, `status`, `blockedReasons`를 본다.
 - `run`
@@ -95,6 +95,8 @@ npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models g
   - ambiguity가 높거나 design freeze 조건이 안 맞으면 생성되지 않는다.
 - unverified capability 때문에 blocked
   - 검증되지 않은 capability는 실행 가능하다고 가정하지 않는다.
+- doctor preflight 실패
+  - `working_tree_clean`, `verified_test_commands`, `workspace_writable` 같은 preflight check가 실패하면 야간 실행 대상으로 보기 어렵다.
 - run 완료 후 report 확인 필요
   - `completed`만 보지 말고 `validationSummary`와 `deliveryStatus`를 같이 본다.
 
