@@ -9,7 +9,7 @@ import { planRequirementSteps } from "../planning/requirement-step-planner.js";
 import { executeCommands } from "../validation/execute-commands.js";
 import { appendEvent } from "./event-store.js";
 import { v2SeedPath } from "./files.js";
-import { calculateOntologySimilarity } from "./ontology.js";
+import { buildConvergenceSnapshot } from "./ontology.js";
 import { writeV2Report } from "./report.js";
 import { writeV2Handoff } from "./recovery.js";
 import { writeV2Snapshot } from "./snapshot-store.js";
@@ -172,16 +172,19 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       },
     });
 
-    const convergenceSnapshot = {
-      generatedAt: new Date().toISOString(),
-      similarity: calculateOntologySimilarity(designPackage.ontologySeed, designPackage.ontologySeed),
+    const convergenceSnapshot = buildConvergenceSnapshot({
+      designSeed: designPackage.ontologySeed,
+      targetRequirementIds: [...new Set(plan.workUnits.flatMap((unit) => unit.requirementIds))],
+      targetAcceptanceIds: [...new Set(plan.workUnits.flatMap((unit) => unit.acceptanceIds))],
+      completedRequirementIds: loopResult.completedRequirementIds,
+      coveredAcceptanceIds: featureValidation.passed && regressionValidation.passed
+        ? [...new Set(plan.workUnits.flatMap((unit) => unit.acceptanceIds))]
+        : [],
+      executionModelPolicy: designPackage.executionModelPolicy,
+      changedFiles: loopResult.changedFiles,
+      blockedReasons: loopResult.blockedReason ? [loopResult.blockedReason] : [],
       threshold: 0.95,
-      converged: true,
-      ontologyDriftDetected: false,
-      driftCategories: [],
-      missingCoverage: [],
-      replanSuggested: false,
-    };
+    });
     const verifierDecisions = buildVerifierDecisions({
       convergenceSnapshot,
       featureValidation,

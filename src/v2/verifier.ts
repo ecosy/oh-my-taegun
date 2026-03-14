@@ -5,6 +5,8 @@ export function buildVerifierDecisions(input: {
   convergenceSnapshot: {
     converged: boolean;
     ontologyDriftDetected: boolean;
+    replanSuggested?: boolean;
+    driftCategories?: string[];
   };
   featureValidation: ValidationExecutionResult;
   regressionValidation: ValidationExecutionResult;
@@ -29,11 +31,18 @@ export function buildVerifierDecisions(input: {
     decisions.push({
       id: "verifier_replan",
       passed: false,
-      reasons: ["Ontology drift detected."],
+      reasons: input.convergenceSnapshot.driftCategories?.length
+        ? input.convergenceSnapshot.driftCategories.map((category) => `Ontology drift detected: ${category}.`)
+        : ["Ontology drift detected."],
     });
   }
 
-  if (input.featureValidation.passed && input.regressionValidation.passed && input.convergenceSnapshot.converged) {
+  if (
+    input.featureValidation.passed
+    && input.regressionValidation.passed
+    && input.convergenceSnapshot.converged
+    && !input.convergenceSnapshot.replanSuggested
+  ) {
     decisions.push({
       id: "verifier_pass",
       passed: true,
