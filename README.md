@@ -76,6 +76,48 @@ npm run report:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
 
 실제 회사 모델 연결 smoke가 필요하면 [docs/v2/operator-guide.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/operator-guide.md)의 `Optional Real Model Smoke`를 따른다.
 
+## OMT Skill Install
+
+다른 컴퓨터에서 Codex skill로 `OMT`를 쓰려면 이 저장소를 clone한 뒤 repo-tracked skill source를 설치한다.
+
+```bash
+git clone <repo-url>
+cd oh-my-taegun
+./scripts/install-codex-skill.sh omt
+```
+
+설치가 끝나면 아래처럼 정리된다.
+
+- repo-tracked source: [`skills/omt`](/Users/ryan/Documents/AI-Project/oh-my-taegun/skills/omt)
+- installed skill path: `~/.codex/skills/omt`
+- 설치 방식: `~/.codex/skills/omt -> <repo>/skills/omt` symlink
+
+즉 repo 업데이트가 곧 skill 업데이트다. clone한 저장소를 pull하면 별도 재설치 없이 최신 skill 내용이 바로 반영된다.
+
+용어는 아래처럼 구분한다.
+
+- `$omt`: Codex skill 호출 이름
+- `omt` 또는 `npm run design:v2`: 실제 CLI 실행 경로
+
+수동 설치가 필요하면 아래처럼 심링크를 직접 만들어도 된다.
+
+```bash
+mkdir -p ~/.codex/skills
+ln -s /absolute/path/to/oh-my-taegun/skills/omt ~/.codex/skills/omt
+```
+
+설치 후 확인할 항목:
+
+- `~/.codex/skills/omt`가 symlink인지 확인
+- `~/.codex/skills/omt/SKILL.md`가 열리는지 확인
+- Codex에서 `$omt` 프롬프트가 동작하는지 확인
+
+이미 다른 `~/.codex/skills/omt`가 있다면 아래처럼 백업 후 교체할 수 있다.
+
+```bash
+./scripts/install-codex-skill.sh omt --force
+```
+
 ## GitHub PR 전제 조건
 
 - `real-pr` 모드는 GitHub 원격과 `GITHUB_TOKEN` 또는 `GH_TOKEN`이 있어야 한다.
@@ -87,6 +129,7 @@ npm run report:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
 - 기본 개발은 로컬 source of truth를 사용한다.
 - 원격 공개는 나중에 선별해서 수행한다.
 - skill 형태 배포도 가능하지만 runtime state와 비밀값은 포함하지 않는다.
+- skill wrapper를 git으로 공유하려면 repo 안의 [`skills/omt`](/Users/ryan/Documents/AI-Project/oh-my-taegun/skills/omt)를 source of truth로 사용하고, 각 컴퓨터에서는 `~/.codex/skills/omt`에 symlink 설치한다.
 
 자세한 기준은 [publish-policy](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/publish-policy.md)를 따른다.
 

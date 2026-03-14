@@ -1,0 +1,7 @@
+interface:
+  display_name: "OMT"
+  short_description: "Operate OMT V2 safely on target repositories"
+  default_prompt: "Use $omt to operate OMT V2 on a target repository from design through report."
+
+policy:
+  allow_implicit_invocation: false

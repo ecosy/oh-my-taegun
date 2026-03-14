@@ -64,12 +64,19 @@
 ## Skill 배포 정책
 
 - skill 형태 배포 시에는 core 구현과 skill wrapper를 분리하는 것을 기본 원칙으로 둔다.
+- git으로 추적하는 canonical skill source는 저장소 안에 둔다. 현재 `omt` skill의 canonical path는 [`skills/omt/`](/Users/ryan/Documents/AI-Project/oh-my-taegun/skills/omt)다.
+- 사용자 홈 아래의 `~/.codex/skills/omt`는 배포 대상이 아니라 설치 대상이다. 즉 clone 이후 각 컴퓨터에서 symlink 또는 설치 스크립트로 연결한다.
 - skill에는 다음만 포함한다.
   - 사용 방법
   - 입력 형식
   - 호출 흐름
   - 공개 가능한 템플릿
 - skill에는 런타임 상태 파일, 비밀값, 회사 전용 설정을 포함하지 않는다.
+- skill package에는 아래를 포함하지 않는다.
+  - `.omt/` runtime state
+  - `.env`, secret, token, cert, key
+  - `/Users/...` 같은 개인 절대 경로
+  - 회사 전용 endpoint 또는 운영 계정 정보
 
 ## 브랜치 전략 권장안
 

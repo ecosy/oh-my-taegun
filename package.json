@@ -21,6 +21,7 @@
     "run:v2": "npm run cli -- run --profile docs/v2/spec.yaml",
     "resume:v2": "npm run cli -- resume --profile docs/v2/spec.yaml",
     "report:v2": "npm run cli -- report --profile docs/v2/spec.yaml",
+    "skill:install:omt": "./scripts/install-codex-skill.sh omt",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run --testTimeout 30000 tests/integration",
