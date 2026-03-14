@@ -4,7 +4,7 @@ For actual operation, read `docs/v2/operator-guide.md` first. This document is t
 
 ## Core Flow
 
-`doctor -> model survey -> interview -> ontology -> seed -> freeze -> plan -> execute -> verify -> converge -> deliver -> report`
+`design(interactive preflight + model survey + delivery interview) -> ontology -> seed -> freeze -> plan -> execute -> verify -> review -> deliver -> report`
 
 ## Product Principles
 
@@ -23,6 +23,7 @@ For actual operation, read `docs/v2/operator-guide.md` first. This document is t
 - `planner`: emits bounded work units
 - `executor`: performs repository changes within budget
 - `verifier`: separates design convergence from implementation completion
+- `reviewer`: decides whether local changes may be promoted beyond dry-run
 
 ## Design Package
 
@@ -31,6 +32,7 @@ A frozen design package contains:
 - repository context
 - verified capability report
 - execution model policy
+- delivery policy
 - ambiguity scorecard
 - ontology seed
 - open question count
@@ -53,7 +55,7 @@ A frozen design package contains:
 
 - `omt doctor`: produces environment and model survey evidence
 - `omt inspect`: produces verified capability evidence through read-only inspection
-- `omt design`: produces design package and execution model policy
+- `omt design`: produces design package, execution model policy, and delivery policy
 - `omt run`: consumes frozen design package
 - `omt resume`: restores phase, snapshot, handoff, and model policy
-- `omt report`: emits ambiguity, convergence, pathology, validation, delivery, and model policy summary
+- `omt report`: emits ambiguity, convergence, pathology, validation, review, delivery, and policy summary

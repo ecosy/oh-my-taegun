@@ -42,7 +42,7 @@ export async function inspectCapabilities(workspace: string): Promise<VerifiedCa
       testCommands: verifiedTestCommands,
       lintCommands: verifiedLintCommands,
       typecheckCommands: verifiedTypecheckCommands,
-      deploymentTargets: [...capabilities.deploymentTargets],
+      deploymentTargets: [],
       secretRequirements: [...capabilities.secretRequirements],
       externalWriteSurfaces: [],
       reasons: withFallback(compact([
@@ -50,6 +50,7 @@ export async function inspectCapabilities(workspace: string): Promise<VerifiedCa
         verifiedTestCommands.length > 0 ? "Test commands are backed by package.json scripts." : undefined,
         verifiedLintCommands.length > 0 ? "Lint commands are backed by package.json scripts." : undefined,
         verifiedTypecheckCommands.length > 0 ? "Typecheck commands are backed by package.json scripts." : undefined,
+        capabilities.deploymentTargets.length > 0 ? "Deployment targets were discovered but remain unverified until design interview mapping." : undefined,
       ]), "No verified capability evidence was recorded for command-backed checks."),
     },
     unverified: {
@@ -57,7 +58,7 @@ export async function inspectCapabilities(workspace: string): Promise<VerifiedCa
       testCommands: capabilities.testCommands.filter((command) => !verifiedTestCommands.includes(command)),
       lintCommands: capabilities.lintCommands.filter((command) => !verifiedLintCommands.includes(command)),
       typecheckCommands: capabilities.typecheckCommands.filter((command) => !verifiedTypecheckCommands.includes(command)),
-      deploymentTargets: [],
+      deploymentTargets: [...capabilities.deploymentTargets],
       secretRequirements: [],
       externalWriteSurfaces: [...capabilities.externalWriteSurfaces],
       reasons: withFallback(compact([
@@ -69,6 +70,8 @@ export async function inspectCapabilities(workspace: string): Promise<VerifiedCa
           ? "Some lint commands were inferred but do not map to package.json scripts." : undefined,
         capabilities.typecheckCommands.some((command) => !verifiedTypecheckCommands.includes(command))
           ? "Some typecheck commands were inferred but do not map to package.json scripts." : undefined,
+        capabilities.deploymentTargets.length > 0
+          ? "Deployment commands were inferred but are not safe for autonomous execution until explicitly mapped in delivery policy." : undefined,
         capabilities.externalWriteSurfaces.length > 0
           ? "External write surfaces were detected but not verified for autonomous execution." : undefined,
       ]), "No unverified command evidence was detected."),

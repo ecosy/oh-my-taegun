@@ -1,16 +1,5 @@
 import type { DocumentSet } from "../shared/types.js";
-import type { ExecutionModelPolicy, ModelEnvironmentSurvey, QuestionRecord, WorkUnitBudget } from "./types.js";
-
-export interface ModelPolicyInput {
-  surveyModels?: string;
-  approvedModels?: string;
-  designModel?: string;
-  executionModel?: string;
-  verifierModel?: string;
-  reasoningEfforts?: string;
-  fallbackChain?: string;
-  workUnitBudgetProfile?: string;
-}
+import type { ExecutionModelPolicy, ModelEnvironmentSurvey, ModelPolicyInput, QuestionRecord, WorkUnitBudget } from "./types.js";
 
 export function normalizeModelSurvey(input: ModelPolicyInput): ModelEnvironmentSurvey {
   const surveyedModels = parseList(input.surveyModels);

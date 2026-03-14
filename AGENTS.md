@@ -29,7 +29,9 @@ V2를 실제로 실행하려면 먼저 `docs/v2/operator-guide.md`를 읽고, �
 
 ## Golden Path
 
-- `doctor -> design:v2 -> run:v2 -> report:v2 -> resume:v2`
+- `design:v2 -> run:v2 -> report:v2 -> resume:v2`
+
+`doctor`는 선택적인 진단/디버그 경로로 유지된다.
 
 ## Required Flags
 
@@ -56,6 +58,8 @@ V2를 실제로 실행하려면 먼저 `docs/v2/operator-guide.md`를 읽고, �
 
 - V2 CLI command surface
 - interview-derived `ExecutionModelPolicy`
+- interactive `design:v2` interview
+- delivery policy freeze and stage-based delivery runtime
 - design artifact persistence
 - budget-aware planning
 - event log, snapshot, report, resume
@@ -64,10 +68,8 @@ V2를 실제로 실행하려면 먼저 `docs/v2/operator-guide.md`를 읽고, �
 아직 아닌 것:
 
 - TUI/HUD
-- 실시간 interactive interview
 - team runtime
 - SQLite/MCP backend
-- stronger delivery runtime
 
 ## Do Not Assume
 

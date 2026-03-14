@@ -1,6 +1,19 @@
 import type { BlockedReason, CapabilityReport, DocumentSet, RepositoryContext, ValidationExecutionResult } from "../shared/types.js";
 
-export type V2Phase = "doctor" | "design" | "plan" | "execute" | "verify" | "deliver";
+export type V2Phase = "doctor" | "design" | "plan" | "execute" | "verify" | "review" | "deliver";
+export type DeliveryTargetStage = "dry-run" | "commit" | "real-pr" | "dev" | "prod";
+export type StageRunnerKind = "shell" | "external-command";
+
+export interface ModelPolicyInput {
+  surveyModels?: string;
+  approvedModels?: string;
+  designModel?: string;
+  executionModel?: string;
+  verifierModel?: string;
+  reasoningEfforts?: string;
+  fallbackChain?: string;
+  workUnitBudgetProfile?: string;
+}
 
 export interface ModelEnvironmentSurvey {
   surveyedAt: string;
@@ -40,6 +53,49 @@ export interface ExecutionModelPolicy {
   requiresManualOverrideFor: string[];
   recordedAt: string;
   openQuestions: string[];
+}
+
+export interface DeliveryCommandPolicy {
+  runnerKind: StageRunnerKind;
+  command: string;
+  validationCommand?: string;
+  envRefs: string[];
+}
+
+export interface DeliveryPolicyInput {
+  targetStage?: DeliveryTargetStage;
+  reviewRequired?: boolean;
+  realPr?: {
+    targetBranch?: string;
+    featureBranchTemplate?: string;
+    titleTemplate?: string;
+  };
+  dev?: Partial<DeliveryCommandPolicy>;
+  prod?: Partial<DeliveryCommandPolicy> & {
+    approvedForThisRun?: boolean;
+  };
+  fallbackMode?: "blocked-handoff";
+}
+
+export interface DeliveryPolicy {
+  targetStage: DeliveryTargetStage;
+  reviewRequired: boolean;
+  fallbackMode: "blocked-handoff";
+  realPr: {
+    targetBranch: string;
+    featureBranchTemplate: string;
+    titleTemplate: string;
+  };
+  dev?: DeliveryCommandPolicy;
+  prod?: DeliveryCommandPolicy & {
+    approvedForThisRun: boolean;
+  };
+  openQuestions: string[];
+}
+
+export interface InterviewAnswerFile {
+  modelPolicy?: ModelPolicyInput;
+  deliveryPolicy?: DeliveryPolicyInput;
 }
 
 export interface QuestionRecord {
@@ -99,6 +155,14 @@ export interface VerifierDecision {
   reasons: string[];
 }
 
+export interface ReviewerDecision {
+  status: "pass" | "rework" | "block";
+  summary: string;
+  findings: string[];
+  nextActions: string[];
+  evidenceRefs: string[];
+}
+
 export interface VerifiedCapabilityBucket {
   buildCommands: string[];
   testCommands: string[];
@@ -152,6 +216,7 @@ export interface DesignPackage {
   repository: RepositoryContext;
   verifiedCapabilityReport: VerifiedCapabilityReport;
   executionModelPolicy: ExecutionModelPolicy;
+  deliveryPolicy: DeliveryPolicy;
   ambiguityScorecard: AmbiguityScorecard;
   ontologySeed: OntologySeed;
   openQuestionCount: number;
@@ -170,22 +235,43 @@ export interface V2RunState {
   startedAt: string;
   updatedAt: string;
   executionModelPolicy: ExecutionModelPolicy;
+  deliveryPolicy: DeliveryPolicy;
   ambiguityScorecard: AmbiguityScorecard;
   convergenceSnapshot?: ConvergenceSnapshot;
   pathologySignals: PathologySignal[];
   blockedReasons: BlockedReason[];
   verifierDecisions: VerifierDecision[];
+  reviewerDecision?: ReviewerDecision;
   validationSummary: {
     featureValidation: ValidationExecutionResult;
     regressionValidation: ValidationExecutionResult;
   };
   deliveryStatus: {
-    mode: "dry-run" | "draft-pr" | "real-pr";
+    mode: DeliveryTargetStage;
     status: "pending" | "blocked" | "completed";
     featureBranch?: string;
     targetBranch?: string;
     prUrl?: string;
-    deliveryReadiness: "dry-run-ready" | "blocked-on-validation" | "blocked-on-capability" | "blocked-on-policy";
+    localCommitSha?: string;
+    targetStage: DeliveryTargetStage;
+    currentStage: DeliveryTargetStage;
+    completedStages: DeliveryTargetStage[];
+    failedStage?: DeliveryTargetStage;
+    stageResults: Array<{
+      stage: DeliveryTargetStage;
+      status: "pending" | "completed" | "blocked" | "skipped";
+      command?: string;
+      validationCommand?: string;
+      runnerKind?: StageRunnerKind;
+      stdout?: string;
+      stderr?: string;
+      exitCode?: number;
+      durationMs?: number;
+      cwd?: string;
+      evidenceRefs: string[];
+      nextActions: string[];
+    }>;
+    deliveryReadiness: "dry-run-ready" | "stage-complete" | "blocked-on-validation" | "blocked-on-capability" | "blocked-on-policy" | "blocked-on-review";
     blockingChecks: DeliveryBlockingCheck[];
     nextActions: string[];
   };

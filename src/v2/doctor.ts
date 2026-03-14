@@ -7,9 +7,9 @@ import { currentBranch } from "../delivery/git-client.js";
 import { resolveRepository } from "../intake/resolve-repo.js";
 import { CliError } from "../shared/errors.js";
 import type { RepositoryContext } from "../shared/types.js";
-import { normalizeModelSurvey, type ModelPolicyInput } from "./model-policy.js";
+import { normalizeModelSurvey } from "./model-policy.js";
 import { inspectCapabilities } from "./inspect.js";
-import type { DoctorResult, ModelEnvironmentSurvey } from "./types.js";
+import type { DoctorResult, ModelEnvironmentSurvey, ModelPolicyInput } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 

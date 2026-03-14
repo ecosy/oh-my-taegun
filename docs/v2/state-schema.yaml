@@ -26,7 +26,12 @@ event_types:
   - work_unit_started
   - work_unit_completed
   - verifier_decision_recorded
+  - review_started
+  - review_completed
   - validation_completed
+  - delivery_stage_started
+  - delivery_stage_completed
+  - delivery_stage_blocked
   - delivery_completed
   - blocked_raised
   - resume_prepared
@@ -35,6 +40,7 @@ resume_phases:
   - plan
   - execute
   - verify
+  - review
   - deliver
 recovery_rules:
   latest_snapshot_corrupt: fallback_to_previous_healthy_snapshot

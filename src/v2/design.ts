@@ -4,14 +4,21 @@ import type { DocumentSet, RepositoryContext } from "../shared/types.js";
 import { buildOntologySeed } from "./ontology.js";
 import { v2DesignInterviewPath, v2DesignModelSurveyPath, v2OntologyPath, v2SeedPath } from "./files.js";
 import { calculateAmbiguityScore } from "./metrics.js";
-import { buildExecutionModelPolicy, buildModelPolicyQuestionRecords, type ModelPolicyInput } from "./model-policy.js";
+import { buildExecutionModelPolicy, buildModelPolicyQuestionRecords, normalizeModelSurvey } from "./model-policy.js";
+import { buildDeliveryPolicy, buildDeliveryPolicyQuestionRecords } from "./delivery-policy.js";
 import type { BlockedReason } from "../shared/types.js";
-import type { DesignPackage, DoctorResult, QuestionRecord } from "./types.js";
+import type { DeliveryPolicyInput, DesignPackage, DoctorResult, ModelPolicyInput, QuestionRecord } from "./types.js";
+
+export interface V2DesignInput {
+  modelPolicy: ModelPolicyInput;
+  deliveryPolicy?: DeliveryPolicyInput;
+}
 
 export interface V2DesignResult {
   repository: RepositoryContext;
   modelEnvironmentSurvey: DoctorResult["modelEnvironmentSurvey"];
   executionModelPolicy: DesignPackage["executionModelPolicy"];
+  deliveryPolicy: DesignPackage["deliveryPolicy"];
   ambiguityScorecard: DesignPackage["ambiguityScorecard"];
   ontologySeed: DesignPackage["ontologySeed"];
   designPackagePath?: string;
@@ -23,12 +30,19 @@ export interface V2DesignResult {
 export async function runV2Design(
   documents: DocumentSet,
   doctor: DoctorResult,
-  input: ModelPolicyInput,
+  input: V2DesignInput,
 ): Promise<V2DesignResult> {
-  const policy = buildExecutionModelPolicy(documents, doctor.modelEnvironmentSurvey, input);
+  const modelSurvey = normalizeModelSurvey({
+    surveyModels: input.modelPolicy.surveyModels ?? doctor.modelEnvironmentSurvey.surveyedModels.join(", "),
+    approvedModels: input.modelPolicy.approvedModels ?? doctor.modelEnvironmentSurvey.approvedModels.join(", "),
+    reasoningEfforts: input.modelPolicy.reasoningEfforts ?? doctor.modelEnvironmentSurvey.reasoningEfforts.join(", "),
+  });
+  const policy = buildExecutionModelPolicy(documents, modelSurvey, input.modelPolicy);
+  const deliveryPolicy = buildDeliveryPolicy(documents, input.deliveryPolicy);
   const questionRecords = [
     ...buildDesignQuestionRecords(documents, doctor),
-    ...buildModelPolicyQuestionRecords(doctor.modelEnvironmentSurvey, policy, input),
+    ...buildModelPolicyQuestionRecords(modelSurvey, policy, input.modelPolicy),
+    ...buildDeliveryPolicyQuestionRecords(deliveryPolicy, input.deliveryPolicy),
   ];
   const ambiguityScorecard = calculateAmbiguityScore({
     questions: questionRecords,
@@ -39,7 +53,7 @@ export async function runV2Design(
 
   const blockedReasons = collectBlockedReasons(ambiguityScorecard);
 
-  await writeJson(v2DesignModelSurveyPath(doctor.repository.localWorkspace), doctor.modelEnvironmentSurvey);
+  await writeJson(v2DesignModelSurveyPath(doctor.repository.localWorkspace), modelSurvey);
   await appendInterviewRecords(v2DesignInterviewPath(doctor.repository.localWorkspace), questionRecords);
   await writeJson(v2OntologyPath(doctor.repository.localWorkspace), ontologySeed);
 
@@ -49,6 +63,7 @@ export async function runV2Design(
       repository: doctor.repository,
       verifiedCapabilityReport: doctor.verifiedCapabilityReport,
       executionModelPolicy: policy,
+      deliveryPolicy,
       ambiguityScorecard,
       ontologySeed,
       openQuestionCount: ambiguityScorecard.openQuestions.length,
@@ -63,8 +78,9 @@ export async function runV2Design(
 
   return {
     repository: doctor.repository,
-    modelEnvironmentSurvey: doctor.modelEnvironmentSurvey,
+    modelEnvironmentSurvey: modelSurvey,
     executionModelPolicy: policy,
+    deliveryPolicy,
     ambiguityScorecard,
     ontologySeed,
     designPackagePath,
@@ -84,22 +100,33 @@ function readAmbiguityWeights(documents: DocumentSet): Record<string, number> {
   const metrics = (documents.metrics ?? {}) as Record<string, any>;
   const weights = metrics.ambiguity?.weights;
   return typeof weights === "object" && weights ? weights as Record<string, number> : {
-    goal_clarity: 0.35,
-    constraint_clarity: 0.25,
-    success_criteria: 0.2,
+    goal_clarity: 0.25,
+    constraint_clarity: 0.2,
+    success_criteria: 0.15,
     capability_clarity: 0.1,
     model_policy_clarity: 0.1,
+    delivery_policy_clarity: 0.2,
   };
 }
 
 function collectBlockedReasons(ambiguityScorecard: V2DesignResult["ambiguityScorecard"]): BlockedReason[] {
   const reasons: BlockedReason[] = [];
-  if ((ambiguityScorecard.blockingQuestions?.length ?? 0) > 0) {
+  const blockingQuestions = ambiguityScorecard.blockingQuestions ?? [];
+  if (blockingQuestions.some((question) => question.includes("model") || question.includes("Model"))) {
     reasons.push({
       code: "model_policy_unconfirmed",
-      message: ambiguityScorecard.blockingQuestions?.[0] ?? "Execution model policy is incomplete.",
+      message: blockingQuestions.find((question) => question.includes("model") || question.includes("Model")) ?? "Execution model policy is incomplete.",
       requiredAction: "Complete model policy inputs before seed freeze.",
-      evidence: ambiguityScorecard.blockingQuestions,
+      evidence: blockingQuestions,
+    });
+  }
+  if (blockingQuestions.some((question) => question.includes("delivery") || question.includes("branch") || question.includes("deployment") || question.includes("Production"))) {
+    reasons.push({
+      code: "delivery_policy_unconfirmed",
+      message: blockingQuestions.find((question) => question.includes("delivery") || question.includes("branch") || question.includes("deployment") || question.includes("Production"))
+        ?? "Delivery policy is incomplete.",
+      requiredAction: "Complete delivery policy inputs before seed freeze.",
+      evidence: blockingQuestions,
     });
   }
   if (!ambiguityScorecard.passed) {

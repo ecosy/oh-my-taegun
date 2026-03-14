@@ -9,5 +9,7 @@ describe("v2 operator guide", () => {
     expect(markdown).toContain("## What Does Not Exist Yet");
     expect(markdown).toContain("## How To Read Outputs");
     expect(markdown).toContain("## Acceptance Checklist");
+    expect(markdown).toContain("npm run design:v2");
+    expect(markdown).not.toContain("아래 5줄이 가장 단순한 V2 실사용 경로다.");
   });
 });

@@ -4,6 +4,7 @@ import { resolveRepository } from "../../intake/resolve-repo.js";
 import { evaluateTraceability } from "../../validation/traceability-gate.js";
 import { runDoctor } from "../../v2/doctor.js";
 import { runV2Design } from "../../v2/design.js";
+import { resolveDesignInterviewInput } from "../../v2/interview.js";
 
 export async function runDesignCommand(projectRoot: string, args: Record<string, string>): Promise<void> {
   const documents = await loadDocuments(projectRoot, args.profile);
@@ -21,15 +22,14 @@ export async function runDesignCommand(projectRoot: string, args: Record<string,
       fallbackChain: args["fallback-chain"],
       workUnitBudgetProfile: args["work-unit-budget-profile"],
     });
+    const interviewInput = await resolveDesignInterviewInput({
+      args,
+      documents,
+      doctor,
+    });
     const result = await runV2Design(documents, doctor, {
-      surveyModels: args["survey-models"],
-      approvedModels: args["approved-models"],
-      designModel: args["design-model"],
-      executionModel: args["execution-model"],
-      verifierModel: args["verifier-model"],
-      reasoningEfforts: args["reasoning-efforts"],
-      fallbackChain: args["fallback-chain"],
-      workUnitBudgetProfile: args["work-unit-budget-profile"],
+      modelPolicy: interviewInput.modelPolicy,
+      deliveryPolicy: interviewInput.deliveryPolicy,
     });
 
     process.stdout.write(
@@ -40,6 +40,7 @@ export async function runDesignCommand(projectRoot: string, args: Record<string,
           repository: result.repository,
           modelEnvironmentSurvey: result.modelEnvironmentSurvey,
           executionModelPolicy: result.executionModelPolicy,
+          deliveryPolicy: result.deliveryPolicy,
           ambiguityScorecard: result.ambiguityScorecard,
           ontologySeed: result.ontologySeed,
           designPackagePath: result.designPackagePath,

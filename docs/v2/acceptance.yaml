@@ -3,8 +3,8 @@ product_id: oh-my-taegun
 acceptance_criteria:
   - id: V2-AC-001
     requirement_ids: [V2-REQ-001, V2-REQ-002]
-    title: Model policy capture during design
-    description: "design 단계는 model survey와 operator confirmation을 거쳐 execution model policy를 생성해야 하며, 특정 baseline 모델명을 요구하지 않아야 한다."
+    title: Runtime policy capture during design
+    description: "design 단계는 model survey와 interactive interview를 거쳐 execution model policy와 delivery policy를 생성해야 하며, 특정 baseline 모델명을 요구하지 않아야 한다."
     verification:
       type: contract
       method: docs-plus-tests
@@ -32,7 +32,7 @@ acceptance_criteria:
   - id: V2-AC-005
     requirement_ids: [V2-REQ-007]
     title: Verified capability only
-    description: "verified capability만 execution에 사용되고 unverified capability는 blocked 또는 question으로 처리되어야 한다."
+    description: "verified capability만 execution에 사용되고 unverified capability는 blocked 또는 question으로 처리되어야 하며, inferred deploy command는 delivery policy에 명시 매핑되기 전까지 실행되지 않아야 한다."
     verification:
       type: contract
       method: docs-plus-tests

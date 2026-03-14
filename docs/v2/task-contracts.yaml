@@ -23,6 +23,7 @@ task_contracts:
       - repository_context
     outputs:
       - execution_model_policy
+      - delivery_policy
       - question_records
       - ambiguity_scorecard
       - ontology_seed
@@ -70,12 +71,21 @@ task_contracts:
       - pathology_signals
     blocked_when:
       - convergence_without_validation
+  - type: review_promotion
+    inputs:
+      - changed_files
+      - validation_results
+      - verifier_decisions
+    outputs:
+      - reviewer_decision
   - type: deliver_result
     inputs:
+      - reviewer_decision
       - verifier_decisions
       - delivery_policy
     outputs:
       - delivery_status
+      - stage_timeline
   - type: resume_run
     inputs:
       - event_log

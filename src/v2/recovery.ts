@@ -3,7 +3,7 @@ import { dirname } from "node:path";
 import { latestV2Snapshot } from "./snapshot-store.js";
 import { readEvents, replayEvents } from "./event-store.js";
 import { v2HandoffPath } from "./files.js";
-import type { ExecutionModelPolicy } from "./types.js";
+import type { DeliveryPolicy, ExecutionModelPolicy, ReviewerDecision } from "./types.js";
 
 export async function writeV2Handoff(
   workspace: string,
@@ -23,6 +23,8 @@ export async function latestV2Handoff(workspace: string, runId: string): Promise
 export async function prepareV2Resume(workspace: string, runId: string): Promise<{
   phase: string;
   executionModelPolicy?: ExecutionModelPolicy;
+  deliveryPolicy?: DeliveryPolicy;
+  reviewerDecision?: ReviewerDecision;
   snapshot: Awaited<ReturnType<typeof latestV2Snapshot>>;
   handoff: string | null;
   nextActions: string[];
@@ -34,6 +36,8 @@ export async function prepareV2Resume(workspace: string, runId: string): Promise
   return {
     phase: replay.phase,
     executionModelPolicy: replay.executionModelPolicy,
+    deliveryPolicy: replay.deliveryPolicy,
+    reviewerDecision: replay.reviewerDecision,
     snapshot,
     handoff,
     nextActions: replay.blockedReasons.length > 0

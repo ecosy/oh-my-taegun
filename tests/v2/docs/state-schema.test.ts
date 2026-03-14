@@ -7,5 +7,7 @@ describe("v2 state schema", () => {
     expect(schema.state_model.source_of_truth).toBe("event_log");
     expect(schema.state_model.phase_aware_resume).toBe(true);
     expect(schema.paths.event_log).toContain(".omt/v2/events/");
+    expect(schema.event_types).toContain("review_completed");
+    expect(schema.resume_phases).toContain("review");
   });
 });

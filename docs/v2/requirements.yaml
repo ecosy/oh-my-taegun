@@ -5,8 +5,8 @@ product:
 requirements:
   - id: V2-REQ-001
     priority: MUST
-    title: Interview-derived model policy
-    description: "시스템은 design interview 중 실제 운영 환경의 모델 가용성과 승인 정책을 조사해 execution model policy를 생성해야 한다."
+    title: Interview-derived runtime policy
+    description: "시스템은 design interview 중 실제 운영 환경의 모델 가용성과 delivery 승격 정책을 조사해 execution model policy와 delivery policy를 함께 생성해야 한다."
     source_refs: [docs/v2/positioning.md]
   - id: V2-REQ-002
     priority: MUST
@@ -35,8 +35,8 @@ requirements:
     source_refs: [docs/v2/spec.yaml]
   - id: V2-REQ-007
     priority: MUST
-    title: Verified capability execution
-    description: "검증되지 않은 capability는 execution 단계에서 직접 사용하지 않아야 한다."
+    title: Verified capability and mapped delivery execution
+    description: "검증되지 않은 capability는 execution 단계에서 직접 사용하지 않아야 하며, deploy나 external check는 design interview로 명시 매핑되기 전에는 실행하지 않아야 한다."
     source_refs: [docs/v2/spec.yaml]
   - id: V2-REQ-008
     priority: MUST

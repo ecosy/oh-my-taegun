@@ -9,13 +9,15 @@ import { planRequirementSteps } from "../planning/requirement-step-planner.js";
 import { executeCommands } from "../validation/execute-commands.js";
 import { appendEvent } from "./event-store.js";
 import { v2SeedPath } from "./files.js";
+import { toCapabilityReport } from "./inspect.js";
 import { buildConvergenceSnapshot } from "./ontology.js";
 import { detectPathologySignals } from "./pathology.js";
 import { writeV2Report } from "./report.js";
-import { writeV2Handoff } from "./recovery.js";
+import { prepareV2Resume, writeV2Handoff } from "./recovery.js";
+import { buildReviewerDecision } from "./reviewer.js";
 import { writeV2Snapshot } from "./snapshot-store.js";
 import { writeV2RunState } from "./state-store.js";
-import { toCapabilityReport } from "./inspect.js";
+import { resolveFeatureBranch, runDeliveryStages } from "./stage-runner.js";
 import { buildVerifierDecisions } from "./verifier.js";
 import type { DesignPackage, V2RunOutcome, V2RunState } from "./types.js";
 
@@ -35,7 +37,7 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
   });
   const designPackage = await readDesignPackage(repository.localWorkspace);
   const runId = createRunId();
-  const featureBranch = `feature/omt-v2-${runId}`;
+  const featureBranch = resolveFeatureBranch(designPackage.deliveryPolicy.realPr.featureBranchTemplate, runId);
   await ensureFeatureBranch(repository.localWorkspace, featureBranch).catch(() => undefined);
   const activeBranch = await currentBranch(repository.localWorkspace).catch(() => featureBranch);
   const capabilities = toCapabilityReport(designPackage.verifiedCapabilityReport);
@@ -53,6 +55,7 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
     type: "model_policy_confirmed",
     payload: {
       executionModelPolicy: designPackage.executionModelPolicy,
+      deliveryPolicy: designPackage.deliveryPolicy,
     },
   });
 
@@ -74,7 +77,6 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
     outputs: [],
     issues: ["Validation did not run."],
   };
-
   let runState: V2RunState = {
     runId,
     profileVersion: 2,
@@ -84,6 +86,7 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
     startedAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     executionModelPolicy: designPackage.executionModelPolicy,
+    deliveryPolicy: designPackage.deliveryPolicy,
     ambiguityScorecard: designPackage.ambiguityScorecard,
     pathologySignals: [],
     blockedReasons: [],
@@ -92,18 +95,22 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       featureValidation: initialValidation,
       regressionValidation: initialValidation,
     },
-      deliveryStatus: {
-        mode: "dry-run",
-        status: "pending",
-        featureBranch: activeBranch,
-        targetBranch: documents.profile.delivery?.branch_strategy?.target_branch ?? "develop",
-        deliveryReadiness: "blocked-on-policy",
-        blockingChecks: [],
-        nextActions: ["Finish design confirmation before delivery readiness can be evaluated."],
-      },
-    };
+    deliveryStatus: {
+      mode: designPackage.deliveryPolicy.targetStage,
+      status: "pending",
+      featureBranch: activeBranch,
+      targetBranch: designPackage.deliveryPolicy.realPr.targetBranch,
+      targetStage: designPackage.deliveryPolicy.targetStage,
+      currentStage: "dry-run",
+      completedStages: [],
+      stageResults: [],
+      deliveryReadiness: "blocked-on-policy",
+      blockingChecks: [],
+      nextActions: ["Finish design confirmation before delivery readiness can be evaluated."],
+    },
+  };
 
-  if (plan.blockedReasons && plan.blockedReasons.length > 0) {
+  if (plan.blockedReasons?.length) {
     runState = {
       ...runState,
       status: "blocked",
@@ -218,10 +225,58 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
           evidence: decision.reasons,
         })),
     ];
-    if (blockedReasons.length > 0) {
-      for (const reason of blockedReasons) {
+    const pathologySignals = detectPathologySignals(attemptTelemetry);
+    const reviewerDecision = designPackage.deliveryPolicy.reviewRequired
+      ? buildReviewerDecision({
+          changedFiles: loopResult.changedFiles,
+          featureValidation,
+          regressionValidation,
+          verifierDecisions,
+        })
+      : undefined;
+
+    if (reviewerDecision) {
+      await appendEvent(repository.localWorkspace, runId, {
+        phase: "review",
+        type: "review_completed",
+        payload: reviewerDecision as unknown as Record<string, unknown>,
+      });
+    }
+
+    runState = {
+      ...runState,
+      phase: blockedReasons.length > 0 ? "verify" : (reviewerDecision ? "review" : "deliver"),
+      updatedAt: new Date().toISOString(),
+      convergenceSnapshot,
+      pathologySignals,
+      blockedReasons,
+      verifierDecisions,
+      reviewerDecision,
+      validationSummary: {
+        featureValidation,
+        regressionValidation,
+      },
+    };
+
+    const deliveryOutcome = blockedReasons.length > 0
+      ? undefined
+      : await runDeliveryStages({
+          workspace: repository.localWorkspace,
+          runId,
+          originUrl: repository.originUrl,
+          featureBranch,
+          deliveryStatus: runState.deliveryStatus,
+          deliveryPolicy: designPackage.deliveryPolicy,
+          reviewerDecision,
+        });
+    const deliveryBlockedReasons = deliveryOutcome?.blockedReasons ?? [];
+    const deliveryStatus = deliveryOutcome?.deliveryStatus ?? runState.deliveryStatus;
+
+    const combinedBlockedReasons = [...blockedReasons, ...deliveryBlockedReasons];
+    if (combinedBlockedReasons.length > 0) {
+      for (const reason of combinedBlockedReasons) {
         await appendEvent(repository.localWorkspace, runId, {
-          phase: "verify",
+          phase: deliveryBlockedReasons.length > 0 ? "deliver" : runState.phase,
           type: "blocked_raised",
           payload: {
             message: reason.message,
@@ -230,32 +285,32 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       }
     }
 
-    const pathologySignals = detectPathologySignals(attemptTelemetry);
     const deliveryAssessment = assessDeliveryReadiness({
+      targetStage: designPackage.deliveryPolicy.targetStage,
       featureValidationPassed: featureValidation.passed,
       regressionValidationPassed: regressionValidation.passed,
       hasVerifiedTests: capabilities.testCommands.length > 0,
-      policyOpenQuestions: designPackage.executionModelPolicy.openQuestions,
+      policyOpenQuestions: [
+        ...designPackage.executionModelPolicy.openQuestions,
+        ...designPackage.deliveryPolicy.openQuestions,
+      ],
       verifierDecisions,
-      blockedReasons,
+      reviewerDecision,
+      blockedReasons: combinedBlockedReasons,
+      deliveryStatus,
     });
 
     runState = {
       ...runState,
-      status: blockedReasons.length > 0 ? "blocked" : "completed",
-      phase: blockedReasons.length > 0 ? "verify" : "deliver",
+      status: combinedBlockedReasons.length > 0 ? "blocked" : "completed",
+      phase: combinedBlockedReasons.length > 0
+        ? (deliveryBlockedReasons.length > 0 ? "deliver" : runState.phase)
+        : "deliver",
       updatedAt: new Date().toISOString(),
-      convergenceSnapshot,
-      pathologySignals,
-      blockedReasons,
-      verifierDecisions,
-      validationSummary: {
-        featureValidation,
-        regressionValidation,
-      },
+      blockedReasons: combinedBlockedReasons,
       deliveryStatus: {
-        ...runState.deliveryStatus,
-        status: blockedReasons.length > 0 ? "blocked" : "completed",
+        ...deliveryStatus,
+        status: combinedBlockedReasons.length > 0 ? "blocked" : "completed",
         deliveryReadiness: deliveryAssessment.deliveryReadiness,
         blockingChecks: deliveryAssessment.blockingChecks,
         nextActions: deliveryAssessment.nextActions,
@@ -265,29 +320,7 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
 
   await writeV2RunState(repository.localWorkspace, runState);
   const reportPath = await writeV2Report(repository.localWorkspace, runState);
-  await writeV2Handoff(
-    repository.localWorkspace,
-    runId,
-    [
-      "# Handoff",
-      "",
-      `- run_id: ${runId}`,
-      `- status: ${runState.status}`,
-      `- phase: ${runState.phase}`,
-      `- report: ${basename(reportPath)}`,
-      `- delivery_readiness: ${runState.deliveryStatus.deliveryReadiness}`,
-      "",
-      "## Blocking Checks",
-      ...runState.deliveryStatus.blockingChecks.map((check) => `- ${check.code}: ${check.passed ? "passed" : "failed"} (${check.message})`),
-      "",
-      "## Next Actions",
-      ...runState.deliveryStatus.nextActions.map((action) => `- ${action}`),
-      "",
-      "## Blocked Reasons",
-      ...runState.blockedReasons.map((reason) => `- ${reason.code}: ${reason.message}`),
-      "",
-    ].join("\n"),
-  );
+  await writeV2Handoff(repository.localWorkspace, runId, renderHandoff(runState, reportPath));
   await appendEvent(repository.localWorkspace, runId, {
     phase: runState.phase,
     type: "delivery_completed",
@@ -304,20 +337,23 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
 }
 
 function assessDeliveryReadiness(input: {
+  targetStage: V2RunState["deliveryPolicy"]["targetStage"];
   featureValidationPassed: boolean;
   regressionValidationPassed: boolean;
   hasVerifiedTests: boolean;
   policyOpenQuestions: string[];
   verifierDecisions: V2RunState["verifierDecisions"];
+  reviewerDecision?: V2RunState["reviewerDecision"];
   blockedReasons: V2RunState["blockedReasons"];
+  deliveryStatus: V2RunState["deliveryStatus"];
 }): Pick<V2RunState["deliveryStatus"], "deliveryReadiness" | "blockingChecks" | "nextActions"> {
   const blockingChecks = [
     {
       code: "policy_confirmed",
       passed: input.policyOpenQuestions.length === 0,
       message: input.policyOpenQuestions.length === 0
-        ? "Execution model policy is confirmed."
-        : "Execution model policy still has open questions.",
+        ? "Execution and delivery policies are confirmed."
+        : "Execution or delivery policy still has open questions.",
     },
     {
       code: "verified_tests_available",
@@ -329,16 +365,12 @@ function assessDeliveryReadiness(input: {
     {
       code: "feature_validation_passed",
       passed: input.featureValidationPassed,
-      message: input.featureValidationPassed
-        ? "Feature validation passed."
-        : "Feature validation failed.",
+      message: input.featureValidationPassed ? "Feature validation passed." : "Feature validation failed.",
     },
     {
       code: "regression_validation_passed",
       passed: input.regressionValidationPassed,
-      message: input.regressionValidationPassed
-        ? "Regression validation passed."
-        : "Regression validation failed.",
+      message: input.regressionValidationPassed ? "Regression validation passed." : "Regression validation failed.",
     },
     {
       code: "verifier_passed",
@@ -347,36 +379,58 @@ function assessDeliveryReadiness(input: {
         ? "Verifier accepted the run."
         : "Verifier did not accept the run.",
     },
+    {
+      code: "reviewer_passed",
+      passed: input.reviewerDecision ? input.reviewerDecision.status === "pass" : true,
+      message: input.reviewerDecision
+        ? (input.reviewerDecision.status === "pass" ? "Reviewer accepted promotion." : "Reviewer did not accept promotion.")
+        : "Reviewer gate not required for this target stage.",
+    },
   ];
 
   const blockedCodes = new Set(input.blockedReasons.map((reason) => reason.code));
   const deliveryReadiness = input.policyOpenQuestions.length > 0 || input.verifierDecisions.some((decision) => decision.id === "verifier_replan")
     ? "blocked-on-policy"
-    : !input.hasVerifiedTests || blockedCodes.has("verifier_block")
-      ? input.hasVerifiedTests ? "blocked-on-validation" : "blocked-on-capability"
-      : !input.featureValidationPassed || !input.regressionValidationPassed
-        ? "blocked-on-validation"
-        : "dry-run-ready";
+    : input.reviewerDecision && input.reviewerDecision.status !== "pass"
+      ? "blocked-on-review"
+      : !input.hasVerifiedTests
+        ? "blocked-on-capability"
+        : blockedCodes.has("verifier_block")
+          ? "blocked-on-validation"
+          : !input.featureValidationPassed || !input.regressionValidationPassed
+            ? "blocked-on-validation"
+            : input.targetStage === "dry-run"
+              ? "dry-run-ready"
+              : input.deliveryStatus.status === "completed"
+                ? "stage-complete"
+                : "blocked-on-policy";
 
   const nextActions = deliveryReadiness === "dry-run-ready"
     ? [
         "Review the V2 report and validation outputs.",
-        "Decide whether to promote this dry-run result into a manual delivery step.",
+        "Decide whether to promote this dry-run result into a commit, PR, or deploy stage.",
       ]
-    : deliveryReadiness === "blocked-on-capability"
+    : deliveryReadiness === "stage-complete"
       ? [
-          "Add or verify at least one test command for this repository.",
-          "Rerun doctor and design before starting a new V2 run.",
+          "Review the completed stage timeline in the V2 report.",
+          "Validate any external system effects before starting a new V2 run.",
         ]
-      : deliveryReadiness === "blocked-on-validation"
+      : deliveryReadiness === "blocked-on-capability"
         ? [
-            "Inspect the failing validation outputs in the report.",
-            "Fix validation failures or narrow the work unit scope before rerunning.",
+            "Add or verify the missing capability inputs before rerunning.",
+            "Rerun design with updated delivery mappings if deploy stages are required.",
           ]
-        : [
-            "Resolve execution or verifier policy questions before seed freeze or rerun.",
-            "If ontology drift was detected, replan the design package before continuing.",
-          ];
+        : deliveryReadiness === "blocked-on-review"
+          ? input.reviewerDecision?.nextActions ?? ["Resolve reviewer findings before promotion."]
+          : deliveryReadiness === "blocked-on-validation"
+            ? [
+                "Inspect the failing validation or delivery stage outputs in the report.",
+                "Fix validation failures or narrow the work-unit scope before rerunning.",
+              ]
+            : [
+                "Resolve execution or delivery policy questions before rerunning.",
+                "If ontology drift was detected, replan the design package before continuing.",
+              ];
 
   return {
     deliveryReadiness,
@@ -385,10 +439,50 @@ function assessDeliveryReadiness(input: {
   };
 }
 
+function renderHandoff(runState: V2RunState, reportPath: string): string {
+  return [
+    "# Handoff",
+    "",
+    `- run_id: ${runState.runId}`,
+    `- status: ${runState.status}`,
+    `- phase: ${runState.phase}`,
+    `- report: ${basename(reportPath)}`,
+    `- target_stage: ${runState.deliveryPolicy.targetStage}`,
+    `- current_stage: ${runState.deliveryStatus.currentStage}`,
+    `- delivery_readiness: ${runState.deliveryStatus.deliveryReadiness}`,
+    `- reviewer_status: ${runState.reviewerDecision?.status ?? "not-required"}`,
+    "",
+    "## Completed Stages",
+    ...(runState.deliveryStatus.completedStages.length > 0
+      ? runState.deliveryStatus.completedStages.map((stage) => `- ${stage}`)
+      : ["- none"]),
+    "",
+    "## Stage Results",
+    ...runState.deliveryStatus.stageResults.map((result) =>
+      `- ${result.stage}: ${result.status}${result.command ? ` (${result.command})` : ""}`),
+    "",
+    "## Blocking Checks",
+    ...runState.deliveryStatus.blockingChecks.map((check) => `- ${check.code}: ${check.passed ? "passed" : "failed"} (${check.message})`),
+    "",
+    "## Next Actions",
+    ...runState.deliveryStatus.nextActions.map((action) => `- ${action}`),
+    "",
+    "## Blocked Reasons",
+    ...(runState.blockedReasons.length > 0
+      ? runState.blockedReasons.map((reason) => `- ${reason.code}: ${reason.message}`)
+      : ["- none"]),
+    "",
+  ].join("\n");
+}
+
 async function readDesignPackage(workspace: string): Promise<DesignPackage> {
   return JSON.parse(await readFile(v2SeedPath(workspace), "utf8")) as DesignPackage;
 }
 
 function createRunId(): string {
   return new Date().toISOString().replace(/[-:.TZ]/gu, "");
+}
+
+export async function prepareV2RunResume(workspace: string, runId: string) {
+  return prepareV2Resume(workspace, runId);
 }

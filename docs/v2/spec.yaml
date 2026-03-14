@@ -51,7 +51,7 @@ cli_contracts:
       - evidence_refs
   design:
     phases:
-      - doctor
+      - preflight
       - model_survey
       - interview
       - ontology
@@ -59,6 +59,7 @@ cli_contracts:
       - freeze
     outputs:
       - execution_model_policy
+      - delivery_policy
       - design_package
       - ambiguity_scorecard
       - open_questions
@@ -75,16 +76,23 @@ cli_contracts:
     outputs:
       - phase
       - execution_model_policy
+      - delivery_policy
+      - reviewer_decision
       - latest_snapshot
       - latest_handoff
+      - current_stage
+      - completed_stages
       - next_actions
   report:
     outputs:
       - execution_model_policy
+      - delivery_policy
       - ambiguity_scorecard
       - convergence_snapshot
       - pathology_signals
       - validation_summary
+      - reviewer_decision
+      - stage_timeline
       - delivery_status
 execution:
   mode: sequential
@@ -101,6 +109,7 @@ execution:
     - plan
     - execute
     - verify
+    - review
     - converge
     - deliver
   stop_conditions:
@@ -160,6 +169,8 @@ tasks:
     type: execute_work_units
   - id: verify_progress
     type: verify_progress
+  - id: review_promotion
+    type: review_promotion
   - id: deliver_result
     type: deliver_result
   - id: resume_run

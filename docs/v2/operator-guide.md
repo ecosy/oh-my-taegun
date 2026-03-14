@@ -9,25 +9,26 @@
 - V2 CLI path는 구현되어 있다.
 - `doctor`, `inspect`, `design`, `run`, `resume`, `report`를 사용할 수 있다.
 - `ExecutionModelPolicy`는 interview-derived 방식으로 생성된다.
+- `design:v2`는 기본적으로 interactive interview를 수행한다.
+- delivery policy는 design freeze에 포함된다.
 - design artifact는 `.omt/v2/design/` 아래에 저장된다.
 - run 상태는 event log와 snapshot으로 남는다.
 - report와 resume는 V2 payload contract를 반환한다.
+- stage-based delivery runtime은 `dry-run -> commit -> real-pr -> dev -> prod` 순서를 사용한다.
 
 ## What Does Not Exist Yet
 
 - TUI/HUD
-- interactive interview
 - team runtime
 - SQLite/MCP state backend
-- stronger delivery runtime
+- native skill runtime
 
 ## Golden Path
 
-아래 5줄이 가장 단순한 V2 실사용 경로다. `gpt-5.2-codex`는 예시일 뿐이며, 회사에서 허용된 실제 모델 식별자로 바꿔 넣는다.
+아래 4줄이 가장 단순한 V2 실사용 경로다. `gpt-5.2-codex`는 예시일 뿐이며, 회사에서 허용된 실제 모델 식별자로 바꿔 넣는다.
 
 ```bash
 cd /Users/ryan/Documents/AI-Project/oh-my-taegun
-npm run doctor -- --repo-path /absolute/path/to/target-repo --survey-models gpt-5.2-codex --approved-models gpt-5.2-codex --execution-model gpt-5.2-codex --verifier-model gpt-5.2-codex
 npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models gpt-5.2-codex --approved-models gpt-5.2-codex --execution-model gpt-5.2-codex --verifier-model gpt-5.2-codex
 npm run run:v2 -- --repo-path /absolute/path/to/target-repo
 npm run report:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
@@ -37,6 +38,12 @@ npm run report:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
 
 ```bash
 npm run resume:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
+```
+
+문제가 있을 때만 아래처럼 `doctor`를 별도 진단용으로 먼저 실행한다.
+
+```bash
+npm run doctor -- --repo-path /absolute/path/to/target-repo --survey-models gpt-5.2-codex --approved-models gpt-5.2-codex --execution-model gpt-5.2-codex --verifier-model gpt-5.2-codex
 ```
 
 ## Single Approved Model Example
@@ -62,13 +69,13 @@ npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models g
 - `doctor`
   - `modelEnvironmentSurvey`, `gitRuntimeContext`, `preflightChecks`, `credentialGaps`, `verifiedCapabilityReport`를 본다.
 - `design`
-  - `executionModelPolicy`, `ambiguityScorecard`, `ontologySeed`, `status`, `blockedReasons`를 본다.
+  - `executionModelPolicy`, `deliveryPolicy`, `ambiguityScorecard`, `ontologySeed`, `status`, `blockedReasons`를 본다.
 - `run`
-  - `runId`, `phase`, `status`, `verifierDecisions`, `blockedReasons`를 본다.
+  - `runId`, `phase`, `status`, `verifierDecisions`, `blockedReasons`, `currentStage`를 본다.
 - `report`
-  - `executionModelPolicy`, `convergenceSnapshot`, `pathologySignals`, `validationSummary`, `deliveryStatus`를 본다.
+  - `executionModelPolicy`, `deliveryPolicy`, `reviewerDecision`, `stageTimeline`, `convergenceSnapshot`, `pathologySignals`, `validationSummary`, `deliveryStatus`를 본다.
 - `resume`
-  - `phase`, `executionModelPolicy`, `snapshot`, `handoff`, `nextActions`를 본다.
+  - `phase`, `executionModelPolicy`, `deliveryPolicy`, `reviewerDecision`, `snapshot`, `handoff`, `currentStage`, `completedStages`, `nextActions`를 본다.
 
 ## Files Written By Each Phase
 
@@ -91,10 +98,16 @@ npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models g
 
 - model policy 미확정
   - 승인 모델이 여러 개인데 기본 execution/verifier 모델이 비어 있으면 blocked 된다.
+- interactive design on non-TTY
+  - 대화형 `design:v2`는 TTY가 필요하다. 자동화에서는 `--non-interactive --answers-file`을 사용한다.
 - `seed.json` 미생성
   - ambiguity가 높거나 design freeze 조건이 안 맞으면 생성되지 않는다.
 - unverified capability 때문에 blocked
   - 검증되지 않은 capability는 실행 가능하다고 가정하지 않는다.
+- reviewer blocked promotion
+  - `real-pr` 이상 stage는 reviewer가 local diff 승격을 허용하지 않으면 blocked 된다.
+- production approval missing
+  - `prod` stage는 run별 승인 없이는 freeze되지 않는다.
 - doctor preflight 실패
   - `working_tree_clean`, `verified_test_commands`, `workspace_writable` 같은 preflight check가 실패하면 야간 실행 대상으로 보기 어렵다.
 - run 완료 후 report 확인 필요
@@ -106,6 +119,7 @@ npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models g
 - event log가 존재한다.
 - `run` 결과가 `completed`다.
 - `report`에 `executionModelPolicy`가 있다.
+- `report`에 `deliveryPolicy`와 `stageTimeline`이 있다.
 - `report`에 `validationSummary`가 있다.
 
 ## Optional Real Model Smoke

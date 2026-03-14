@@ -28,6 +28,15 @@ export async function commitWorkingTree(workspace: string, message: string): Pro
   return true;
 }
 
+export async function commitWorkingTreeWithSha(workspace: string, message: string): Promise<string | undefined> {
+  const committed = await commitWorkingTree(workspace, message);
+  if (!committed) {
+    return undefined;
+  }
+  const result = await runCommand("git", ["-C", workspace, "rev-parse", "HEAD"]);
+  return result.stdout || undefined;
+}
+
 export async function hasOrigin(workspace: string): Promise<boolean> {
   try {
     await runCommand("git", ["-C", workspace, "remote", "get-url", "origin"]);
