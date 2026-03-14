@@ -29,12 +29,29 @@ export async function runDoctor(options: DoctorOptions): Promise<DoctorResult> {
   const modelEnvironmentSurvey = buildSurvey(options);
   const verifiedCapabilityReport = await inspectCapabilities(repository.localWorkspace);
   const gitRuntimeContext = await buildGitRuntimeContext(repository);
+  const preflightChecks = [
+    {
+      code: "working_tree_clean",
+      passed: gitRuntimeContext.workingTreeClean,
+      message: gitRuntimeContext.workingTreeClean
+        ? "Working tree is clean."
+        : "Working tree has uncommitted changes.",
+    },
+    {
+      code: "verified_test_commands",
+      passed: verifiedCapabilityReport.verified.testCommands.length > 0,
+      message: verifiedCapabilityReport.verified.testCommands.length > 0
+        ? "Verified test commands are available."
+        : "No verified test command was detected.",
+    },
+  ];
   const credentialGaps = collectCredentialGaps(verifiedCapabilityReport, modelEnvironmentSurvey);
 
   return {
     repository,
     modelEnvironmentSurvey,
     gitRuntimeContext,
+    preflightChecks,
     credentialGaps,
     verifiedCapabilityReport,
   };
@@ -68,13 +85,21 @@ async function buildGitRuntimeContext(repository: RepositoryContext): Promise<Do
   };
 }
 
-function collectCredentialGaps(result: DoctorResult["verifiedCapabilityReport"], survey: ModelEnvironmentSurvey): string[] {
-  const gaps: string[] = [];
+function collectCredentialGaps(result: DoctorResult["verifiedCapabilityReport"], survey: ModelEnvironmentSurvey): DoctorResult["credentialGaps"] {
+  const gaps: DoctorResult["credentialGaps"] = [];
   if (survey.approvedModels.length === 0) {
-    gaps.push("No approved model policy was confirmed.");
+    gaps.push({
+      code: "missing_approved_models",
+      message: "No approved model policy was confirmed.",
+      severity: "blocking",
+    });
   }
   if (result.verified.testCommands.length === 0) {
-    gaps.push("No verified test command was detected.");
+    gaps.push({
+      code: "missing_verified_tests",
+      message: "No verified test command was detected.",
+      severity: "blocking",
+    });
   }
   return gaps;
 }

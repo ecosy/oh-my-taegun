@@ -91,13 +91,16 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       featureValidation: initialValidation,
       regressionValidation: initialValidation,
     },
-    deliveryStatus: {
-      mode: "dry-run",
-      status: "pending",
-      featureBranch: activeBranch,
-      targetBranch: documents.profile.delivery?.branch_strategy?.target_branch ?? "develop",
-    },
-  };
+      deliveryStatus: {
+        mode: "dry-run",
+        status: "pending",
+        featureBranch: activeBranch,
+        targetBranch: documents.profile.delivery?.branch_strategy?.target_branch ?? "develop",
+        deliveryReadiness: "blocked-on-policy",
+        blockingChecks: [],
+        nextActions: ["Finish design confirmation before delivery readiness can be evaluated."],
+      },
+    };
 
   if (plan.blockedReasons && plan.blockedReasons.length > 0) {
     runState = {
@@ -175,6 +178,9 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       threshold: 0.95,
       converged: true,
       ontologyDriftDetected: false,
+      driftCategories: [],
+      missingCoverage: [],
+      replanSuggested: false,
     };
     const verifierDecisions = buildVerifierDecisions({
       convergenceSnapshot,
@@ -213,6 +219,15 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       }
     }
 
+    const deliveryAssessment = assessDeliveryReadiness({
+      featureValidationPassed: featureValidation.passed,
+      regressionValidationPassed: regressionValidation.passed,
+      hasVerifiedTests: capabilities.testCommands.length > 0,
+      policyOpenQuestions: designPackage.executionModelPolicy.openQuestions,
+      verifierDecisions,
+      blockedReasons,
+    });
+
     runState = {
       ...runState,
       status: blockedReasons.length > 0 ? "blocked" : "completed",
@@ -228,6 +243,9 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
       deliveryStatus: {
         ...runState.deliveryStatus,
         status: blockedReasons.length > 0 ? "blocked" : "completed",
+        deliveryReadiness: deliveryAssessment.deliveryReadiness,
+        blockingChecks: deliveryAssessment.blockingChecks,
+        nextActions: deliveryAssessment.nextActions,
       },
     };
   }
@@ -237,7 +255,25 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
   await writeV2Handoff(
     repository.localWorkspace,
     runId,
-    `# Handoff\n\n- run_id: ${runId}\n- status: ${runState.status}\n- phase: ${runState.phase}\n- report: ${basename(reportPath)}\n`,
+    [
+      "# Handoff",
+      "",
+      `- run_id: ${runId}`,
+      `- status: ${runState.status}`,
+      `- phase: ${runState.phase}`,
+      `- report: ${basename(reportPath)}`,
+      `- delivery_readiness: ${runState.deliveryStatus.deliveryReadiness}`,
+      "",
+      "## Blocking Checks",
+      ...runState.deliveryStatus.blockingChecks.map((check) => `- ${check.code}: ${check.passed ? "passed" : "failed"} (${check.message})`),
+      "",
+      "## Next Actions",
+      ...runState.deliveryStatus.nextActions.map((action) => `- ${action}`),
+      "",
+      "## Blocked Reasons",
+      ...runState.blockedReasons.map((reason) => `- ${reason.code}: ${reason.message}`),
+      "",
+    ].join("\n"),
   );
   await appendEvent(repository.localWorkspace, runId, {
     phase: runState.phase,
@@ -251,6 +287,88 @@ export async function runV2Nightly(options: V2RunOptions): Promise<V2RunOutcome>
   return {
     runState,
     reportPath,
+  };
+}
+
+function assessDeliveryReadiness(input: {
+  featureValidationPassed: boolean;
+  regressionValidationPassed: boolean;
+  hasVerifiedTests: boolean;
+  policyOpenQuestions: string[];
+  verifierDecisions: V2RunState["verifierDecisions"];
+  blockedReasons: V2RunState["blockedReasons"];
+}): Pick<V2RunState["deliveryStatus"], "deliveryReadiness" | "blockingChecks" | "nextActions"> {
+  const blockingChecks = [
+    {
+      code: "policy_confirmed",
+      passed: input.policyOpenQuestions.length === 0,
+      message: input.policyOpenQuestions.length === 0
+        ? "Execution model policy is confirmed."
+        : "Execution model policy still has open questions.",
+    },
+    {
+      code: "verified_tests_available",
+      passed: input.hasVerifiedTests,
+      message: input.hasVerifiedTests
+        ? "At least one verified test command is available."
+        : "No verified test command is available.",
+    },
+    {
+      code: "feature_validation_passed",
+      passed: input.featureValidationPassed,
+      message: input.featureValidationPassed
+        ? "Feature validation passed."
+        : "Feature validation failed.",
+    },
+    {
+      code: "regression_validation_passed",
+      passed: input.regressionValidationPassed,
+      message: input.regressionValidationPassed
+        ? "Regression validation passed."
+        : "Regression validation failed.",
+    },
+    {
+      code: "verifier_passed",
+      passed: input.verifierDecisions.some((decision) => decision.id === "verifier_pass" && decision.passed),
+      message: input.verifierDecisions.some((decision) => decision.id === "verifier_pass" && decision.passed)
+        ? "Verifier accepted the run."
+        : "Verifier did not accept the run.",
+    },
+  ];
+
+  const blockedCodes = new Set(input.blockedReasons.map((reason) => reason.code));
+  const deliveryReadiness = input.policyOpenQuestions.length > 0 || input.verifierDecisions.some((decision) => decision.id === "verifier_replan")
+    ? "blocked-on-policy"
+    : !input.hasVerifiedTests || blockedCodes.has("verifier_block")
+      ? input.hasVerifiedTests ? "blocked-on-validation" : "blocked-on-capability"
+      : !input.featureValidationPassed || !input.regressionValidationPassed
+        ? "blocked-on-validation"
+        : "dry-run-ready";
+
+  const nextActions = deliveryReadiness === "dry-run-ready"
+    ? [
+        "Review the V2 report and validation outputs.",
+        "Decide whether to promote this dry-run result into a manual delivery step.",
+      ]
+    : deliveryReadiness === "blocked-on-capability"
+      ? [
+          "Add or verify at least one test command for this repository.",
+          "Rerun doctor and design before starting a new V2 run.",
+        ]
+      : deliveryReadiness === "blocked-on-validation"
+        ? [
+            "Inspect the failing validation outputs in the report.",
+            "Fix validation failures or narrow the work unit scope before rerunning.",
+          ]
+        : [
+            "Resolve execution or verifier policy questions before seed freeze or rerun.",
+            "If ontology drift was detected, replan the design package before continuing.",
+          ];
+
+  return {
+    deliveryReadiness,
+    blockingChecks,
+    nextActions,
   };
 }
 

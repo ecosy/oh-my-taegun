@@ -48,6 +48,9 @@ export interface QuestionRecord {
   answer?: string;
   required: boolean;
   source: "doctor" | "operator" | "system";
+  slot?: string;
+  status?: "answered" | "unanswered" | "assumed" | "verified";
+  blocking?: boolean;
 }
 
 export interface AmbiguityScorecard {
@@ -76,10 +79,13 @@ export interface ConvergenceSnapshot {
   threshold: number;
   converged: boolean;
   ontologyDriftDetected: boolean;
+  driftCategories?: Array<"missing_requirement" | "missing_acceptance" | "policy_shift" | "unexplained_new_scope">;
+  missingCoverage?: string[];
+  replanSuggested?: boolean;
 }
 
 export interface PathologySignal {
-  type: "stagnation" | "oscillation" | "repetitive_feedback";
+  type: "stagnation" | "oscillation" | "repetitive_feedback" | "retry_without_new_evidence";
   detected: boolean;
   evidence: string[];
 }
@@ -98,6 +104,25 @@ export interface VerifiedCapabilityBucket {
   deploymentTargets: string[];
   secretRequirements: string[];
   externalWriteSurfaces: string[];
+  reasons?: string[];
+}
+
+export interface DeliveryBlockingCheck {
+  code: string;
+  passed: boolean;
+  message: string;
+}
+
+export interface PreflightCheck {
+  code: string;
+  passed: boolean;
+  message: string;
+}
+
+export interface CredentialGap {
+  code: string;
+  message: string;
+  severity: "warning" | "blocking";
 }
 
 export interface VerifiedCapabilityReport {
@@ -157,6 +182,9 @@ export interface V2RunState {
     featureBranch?: string;
     targetBranch?: string;
     prUrl?: string;
+    deliveryReadiness: "dry-run-ready" | "blocked-on-validation" | "blocked-on-capability" | "blocked-on-policy";
+    blockingChecks: DeliveryBlockingCheck[];
+    nextActions: string[];
   };
 }
 
@@ -167,7 +195,8 @@ export interface DoctorResult {
     workingTreeClean: boolean;
     currentBranch?: string;
   };
-  credentialGaps: string[];
+  preflightChecks: PreflightCheck[];
+  credentialGaps: CredentialGap[];
   verifiedCapabilityReport: VerifiedCapabilityReport;
 }
 

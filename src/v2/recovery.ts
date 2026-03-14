@@ -36,6 +36,8 @@ export async function prepareV2Resume(workspace: string, runId: string): Promise
     executionModelPolicy: replay.executionModelPolicy,
     snapshot,
     handoff,
-    nextActions: replay.blockedReasons.length > 0 ? replay.blockedReasons : ["Continue from the recorded phase."],
+    nextActions: replay.blockedReasons.length > 0
+      ? replay.blockedReasons
+      : ["Continue from the recorded phase and consult the latest report for delivery readiness."],
   };
 }
