@@ -9,5 +9,7 @@ describe("readme start here", () => {
     expect(top).toContain("AGENTS.md");
     expect(top).toContain("docs/v2/operator-guide.md");
     expect(markdown).toContain("## Quick Start (V2)");
+    expect(markdown).toContain("docs/v2/day-1-runbook.md");
+    expect(markdown).toContain("## Company Day-1");
   });
 });

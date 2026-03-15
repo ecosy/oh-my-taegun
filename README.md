@@ -44,6 +44,7 @@ V2를 실제로 실행하려면 먼저 [AGENTS.md](/Users/ryan/Documents/AI-Proj
 - [e2e-playbook](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/e2e-playbook.md)
 - [publish-policy](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/publish-policy.md)
 - [repo-layout](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/repo-layout.md)
+- [v2-day-1-runbook](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/day-1-runbook.md)
 
 ## 권장 개발 흐름
 
@@ -125,6 +126,27 @@ ln -s /absolute/path/to/oh-my-taegun/skills/omt ~/.codex/skills/omt
 ```bash
 ./scripts/install-codex-skill.sh omt --force
 ```
+
+## Company Day-1
+
+회사 로컬 개발환경에서 Codex를 쓸 수 있다면, 첫날은 `CLI + $omt` 조합으로 시작하는 것이 가장 안전하다. 운영 기준은 [AGENTS.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/AGENTS.md), [docs/v2/operator-guide.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/operator-guide.md), [docs/v2/day-1-runbook.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/day-1-runbook.md) 순서로 본다.
+
+- 첫 run의 기본 target stage는 `dry-run`이다.
+- `dry-run`이 깔끔할 때만 같은 날 `commit`까지 올린다.
+- `real-pr`, `dev`, `prod`는 첫날 성공 기준에 넣지 않는다.
+- skill이 막히면 raw CLI fallback으로 `design:v2 -> run:v2 -> report:v2`를 직접 실행한다.
+
+Codex 첫 프롬프트는 아래처럼 시작하면 된다.
+
+```text
+$omt를 사용해서 OMT V2를 /absolute/path/to/target-repo 에 실행해주세요.
+먼저 target stage는 dry-run으로 시작해주세요.
+채팅으로 model policy와 delivery policy를 수집하고, 모호한 답변은 다시 질문해주세요.
+필수 입력이 닫히지 않으면 실행하지 말고 중단해주세요.
+실행 후에는 runId, 현재 phase, 현재 stage, completed stages, blocked reasons, report 경로를 요약해주세요.
+```
+
+자세한 절차, raw CLI fallback, 첫날 성공 기준은 [docs/v2/day-1-runbook.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/day-1-runbook.md)에 정리한다.
 
 ## GitHub PR 전제 조건
 

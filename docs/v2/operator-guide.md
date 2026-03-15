@@ -47,6 +47,35 @@ npm run resume:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
 npm run doctor -- --repo-path /absolute/path/to/target-repo --survey-models gpt-5.2-codex --approved-models gpt-5.2-codex --execution-model gpt-5.2-codex --verifier-model gpt-5.2-codex
 ```
 
+## Day-1 Company Path
+
+회사 로컬 개발환경에서 Codex를 쓸 수 있다면 첫날 권장 경로는 `CLI를 본체로 두고 $omt skill을 operator wrapper로 얹는 방식`이다. 자세한 checklist와 prompt 예시는 [day-1-runbook.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/day-1-runbook.md)를 따른다.
+
+첫날 운영 기본값은 아래로 고정한다.
+
+- target stage는 `dry-run`
+- 결과가 안정적일 때만 같은 날 `commit`
+- `real-pr`, `dev`, `prod`는 첫날 범위 밖
+- blocked 시 `report`와 `resume`으로 원인을 읽고, 필요할 때만 `doctor` 추가 실행
+
+skill로 시작할 때의 기본 프롬프트는 아래와 같다.
+
+```text
+$omt를 사용해서 OMT V2를 /absolute/path/to/target-repo 에 실행해주세요.
+먼저 target stage는 dry-run으로 시작해주세요.
+채팅으로 model policy와 delivery policy를 수집하고, 모호한 답변은 다시 질문해주세요.
+필수 입력이 닫히지 않으면 실행하지 말고 중단해주세요.
+실행 후에는 runId, 현재 phase, 현재 stage, completed stages, blocked reasons, report 경로를 요약해주세요.
+```
+
+skill을 쓰지 못할 때는 raw CLI fallback으로 아래 순서를 그대로 실행한다.
+
+```bash
+npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models <approved-models> --approved-models <approved-models> --execution-model <execution-model> --verifier-model <verifier-model> --work-unit-budget-profile <budget-profile>
+npm run run:v2 -- --repo-path /absolute/path/to/target-repo
+npm run report:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
+```
+
 ## Single Approved Model Example
 
 모델이 하나만 허용되면 아래처럼 같은 값을 반복해서 넣는다.
