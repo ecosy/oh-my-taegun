@@ -7,18 +7,19 @@
 ## What Exists Today
 
 - V2 CLI path는 구현되어 있다.
-- `doctor`, `inspect`, `design`, `run`, `resume`, `report`를 사용할 수 있다.
+- `doctor`, `inspect`, `design`, `run`, `resume`, `report`, `watch`를 사용할 수 있다.
 - `ExecutionModelPolicy`는 interview-derived 방식으로 생성된다.
 - `design:v2`는 기본적으로 interactive interview를 수행한다.
 - delivery policy는 design freeze에 포함된다.
 - design artifact는 `.omt/v2/design/` 아래에 저장된다.
 - run 상태는 event log와 snapshot으로 남는다.
 - report와 resume는 V2 payload contract를 반환한다.
+- `watch`는 `.omt/v2/*`와 target repo artifact를 읽는 읽기 전용 HUD 서버다.
 - stage-based delivery runtime은 `dry-run -> commit -> real-pr -> dev -> prod` 순서를 사용한다.
 
 ## What Does Not Exist Yet
 
-- TUI/HUD
+- interactive TUI
 - team runtime
 - SQLite/MCP state backend
 - native skill runtime
@@ -76,6 +77,43 @@ npm run design:v2 -- --repo-path /absolute/path/to/target-repo --survey-models g
   - `executionModelPolicy`, `deliveryPolicy`, `reviewerDecision`, `stageTimeline`, `convergenceSnapshot`, `pathologySignals`, `validationSummary`, `deliveryStatus`를 본다.
 - `resume`
   - `phase`, `executionModelPolicy`, `deliveryPolicy`, `reviewerDecision`, `snapshot`, `handoff`, `currentStage`, `completedStages`, `nextActions`를 본다.
+- `watch`
+  - 브라우저에서 `runId`, `phase`, `currentStage`, `currentWorkUnit`, `latestEvents`, `changedFiles`, `validation`, `replayHints`, `warnings`를 본다.
+
+## Watch HUD
+
+`watch`는 로컬 HTTP 서버를 띄우고, 브라우저 HUD가 target repo의 `.omt/v2/*`와 `artifacts/*`를 읽도록 해준다.
+
+가장 단순한 실행은 아래와 같다.
+
+```bash
+cd /Users/ryan/Documents/AI-Project/oh-my-taegun
+npm run watch:v2 -- --repo-path /absolute/path/to/target-repo --port 4317
+```
+
+브라우저에서 아래 주소를 연다.
+
+```text
+http://127.0.0.1:4317
+```
+
+HUD는 다음을 보여준다.
+
+- `Run ID`
+- `Phase`
+- `Stage`
+- 모델 정책
+- 현재 work unit
+- requirement status
+- 최근 이벤트
+- changed files
+- validation
+- replay hints
+- warnings
+
+아직 run이 없으면 `idle` 상태와 `No run detected ...` 경고가 보인다.
+
+실행 예시와 3터미널 관전 흐름은 [hud-runbook.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/hud-runbook.md)에 정리한다.
 
 ## Files Written By Each Phase
 

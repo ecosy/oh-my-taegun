@@ -15,7 +15,7 @@ V2를 실제로 실행하려면 먼저 `docs/v2/operator-guide.md`를 읽고, �
 
 - V2 CLI path는 구현되어 있다.
 - `doctor`, `inspect`, `design`, `run`, `resume`, `report`의 V2 runtime path가 있다.
-- TUI/HUD는 아직 없다.
+- 읽기 전용 `watch` HUD가 있다.
 - interactive interview는 아직 없다.
 - team runtime, tmux, mailbox, rebalance는 범위 밖이다.
 - 상태 저장 기본은 `.omt/v2/*.json` 및 `.jsonl`이다.
@@ -59,6 +59,7 @@ V2를 실제로 실행하려면 먼저 `docs/v2/operator-guide.md`를 읽고, �
 - V2 CLI command surface
 - interview-derived `ExecutionModelPolicy`
 - interactive `design:v2` interview
+- read-only `watch` HUD
 - delivery policy freeze and stage-based delivery runtime
 - design artifact persistence
 - budget-aware planning
@@ -67,7 +68,7 @@ V2를 실제로 실행하려면 먼저 `docs/v2/operator-guide.md`를 읽고, �
 
 아직 아닌 것:
 
-- TUI/HUD
+- interactive TUI
 - team runtime
 - SQLite/MCP backend
 

@@ -8,8 +8,9 @@ import { runInspectCommand } from "./commands/inspect.js";
 import { runRunCommand } from "./commands/run.js";
 import { runResumeCommand } from "./commands/resume.js";
 import { runReportCommand } from "./commands/report.js";
+import { runWatchCommand } from "./commands/watch.js";
 
-type CommandName = "doctor" | "inspect" | "design" | "run" | "resume" | "report";
+type CommandName = "doctor" | "inspect" | "design" | "run" | "resume" | "report" | "watch";
 
 async function main(): Promise<void> {
   const [commandName, ...rest] = process.argv.slice(2);
@@ -36,8 +37,11 @@ async function main(): Promise<void> {
     case "report":
       await runReportCommand(projectRoot, args);
       break;
+    case "watch":
+      await runWatchCommand(projectRoot, args);
+      break;
     default:
-      throw new CliError("Usage: omt <doctor|inspect|design|run|resume|report> [--key value]");
+      throw new CliError("Usage: omt <doctor|inspect|design|run|resume|report|watch> [--key value]");
   }
 }
 

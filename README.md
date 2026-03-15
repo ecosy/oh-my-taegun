@@ -76,6 +76,14 @@ npm run report:v2 -- --repo-path /absolute/path/to/target-repo --run-id <runId>
 
 실제 회사 모델 연결 smoke가 필요하면 [docs/v2/operator-guide.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/operator-guide.md)의 `Optional Real Model Smoke`를 따른다.
 
+브라우저 HUD로 상태를 관전하려면 아래를 추가한다.
+
+```bash
+npm run watch:v2 -- --repo-path /absolute/path/to/target-repo --port 4317
+```
+
+실행 후 브라우저에서 `http://127.0.0.1:4317`를 연다. 관전용 3터미널 예시는 [docs/v2/hud-runbook.md](/Users/ryan/Documents/AI-Project/oh-my-taegun/docs/v2/hud-runbook.md)에 있다.
+
 ## OMT Skill Install
 
 다른 컴퓨터에서 Codex skill로 `OMT`를 쓰려면 이 저장소를 clone한 뒤 repo-tracked skill source를 설치한다.

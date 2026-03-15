@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OMT V2 Watch</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="dashboard">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">OMT V2 Watch</p>
+          <h1>Local Run HUD</h1>
+          <p class="subtitle">Read-only view over `.omt/v2`, evaluation summaries, and replay hints.</p>
+        </div>
+        <div class="hero-meta">
+          <div class="metric-card">
+            <span class="metric-label">Run ID</span>
+            <strong id="run-id">waiting</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Phase</span>
+            <strong id="phase">idle</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Stage</span>
+            <strong id="current-stage">n/a</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid top-grid">
+        <article class="panel">
+          <h2>Model Policy</h2>
+          <dl class="kv-grid" id="model-policy"></dl>
+        </article>
+        <article class="panel">
+          <h2>Current Work Unit</h2>
+          <div id="current-work-unit" class="stacked-empty">No work unit yet.</div>
+        </article>
+        <article class="panel">
+          <h2>Validation</h2>
+          <dl class="kv-grid" id="validation"></dl>
+        </article>
+      </section>
+
+      <section class="grid body-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Requirements</h2>
+            <span id="repo-path" class="micro-copy"></span>
+          </div>
+          <div id="requirements" class="requirement-list"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>Recent Events</h2>
+            <span class="micro-copy">Last 20</span>
+          </div>
+          <div id="events" class="event-list"></div>
+        </article>
+        <article class="panel">
+          <h2>Changed Files</h2>
+          <div id="changed-files" class="file-list"></div>
+        </article>
+      </section>
+
+      <section class="grid bottom-grid">
+        <article class="panel">
+          <h2>Replay Hints</h2>
+          <div id="replay-hints" class="replay-list"></div>
+        </article>
+        <article class="panel">
+          <h2>Artifacts</h2>
+          <div id="artifacts" class="artifact-list"></div>
+        </article>
+        <article class="panel">
+          <h2>Warnings</h2>
+          <div id="warnings" class="warning-list"></div>
+        </article>
+      </section>
+    </main>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
